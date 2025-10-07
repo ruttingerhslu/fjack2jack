@@ -19,5 +19,8 @@ where = ["src"]
 [tool.setuptools.package-data]
 "fjack" = ["*.txt", "*.jack"]
 
+[tool.basedpyright]
+reportImplicitOverride = false
+
 [project.optional-dependencies]
 dev = ["pytest", "unittest-xml-reporting"]

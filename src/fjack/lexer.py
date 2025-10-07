@@ -80,6 +80,7 @@ class Lexer():
         return token
 
     def skip_whitespace(self):
+        """Skips all whitespace characters."""
         while self.ch == ' ' or self.ch == '\t' or self.ch == '\n' or self.ch == '\r':
             self.read_char()
 

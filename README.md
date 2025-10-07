@@ -22,6 +22,23 @@ First, we want to tokenize the input to use them afterwards.
 
 Then, we take those tokens and parse them into an abstract syntax tree.
 
+Represented as dataclass objects:
+```
+Program(statements=[
+  ExpressionStatement(
+    expression=FunctionLiteral(
+      parameters=[Identifier("x")],
+      body=InfixExpression(
+        left=Identifier("x"),
+        operator="*",
+        right=IntegerLiteral(2)
+      )
+    )
+  )
+])
+```
+Which in turn can be written out as: `fun x -> (x * 2);`. Note: the infix expression is surrounded by braces, to handle operations in the right order.
+
 ## Setup
 Use the following command in the root directory to start the REPL:
 ```
