@@ -10,7 +10,7 @@ As an example, we want to parse the following line of code:
 First, we want to tokenize the input to use them afterwards.
 ```
 [
-    FUN,
+    FUNCTION,
     IDENTIFIER("x"),
     ARROW,
     IDENTIFIER("x"),
@@ -22,7 +22,12 @@ First, we want to tokenize the input to use them afterwards.
 
 Then, we take those tokens and parse them into an abstract syntax tree.
 
-## Testing
+## Setup
+Use the following command in the root directory to start the REPL:
+```
+python -m src.__main__
+```
+
 To test this project run:
 ```
 pytest
