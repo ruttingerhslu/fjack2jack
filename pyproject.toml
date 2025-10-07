@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fjack2jack"
+version = "0.1.0"
+description = "FJack to Jack transpiler."
+authors = [{name = "Rafael Uttinger", email = "rafael.uttinger@stud.hslu.ch"}]
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"fjack" = ["*.txt", "*.jack"]
+
+[project.optional-dependencies]
+dev = ["pytest", "unittest-xml-reporting"]
