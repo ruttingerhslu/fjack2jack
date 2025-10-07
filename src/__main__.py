@@ -7,7 +7,8 @@ class Repl(code.InteractiveConsole):
     @override
     def runsource(self, source, filename="<input>", symbol="single"):
         lexer = Lexer(source)
-        print(lexer)
+        for token in lexer:
+            print(token)
 
 def main():
     repl = Repl()

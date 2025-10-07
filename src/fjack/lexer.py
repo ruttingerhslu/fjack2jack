@@ -100,3 +100,12 @@ class Lexer():
     def is_letter(self, ch: str) -> bool:
         """Returns true if the provided character is a letter."""
         return 'a' <= ch and ch <= 'z' or 'A' <= ch and ch <= 'Z' or ch == '_'
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        tok = self.next_token()
+        if tok.type == TokenType.EOF:
+            raise StopIteration
+        return tok
