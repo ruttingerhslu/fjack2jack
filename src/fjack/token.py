@@ -8,10 +8,13 @@ class TokenType(str, Enum):
     IDENT = "IDENT"
     INT = "INT"
 
-    ARROW = "->"
     ASTERISK = "*"
     MINUS = "-"
 
+    LPAREN = "("
+    RPAREN = ")"
+    ARROW = "->"
+    COMMA = ","
     SEMICOLON = ";"
 
     # keywords

@@ -17,5 +17,5 @@ class TestAst(unittest.TestCase):
             )
         ])
 
-        expected = "fun x -> (x * 2);"
+        expected = "fun (x) -> (x * 2);"
         self.assertEqual(str(program), expected)

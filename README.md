@@ -5,13 +5,15 @@ FJack to Jack transpiler
 FJack is a functional language based on Jack, the programming language implemented in Nand2Tetris.
 
 As an example, we want to parse the following line of code:
-```fun x -> x * 2```
+```fun (x) -> x * 2```
 
 First, we want to tokenize the input to use them afterwards.
 ```
 [
     FUNCTION,
+    LPAREN,
     IDENTIFIER("x"),
+    RPAREN,
     ARROW,
     IDENTIFIER("x"),
     ASTERISK,
@@ -37,7 +39,7 @@ Program(statements=[
   )
 ])
 ```
-Which in turn can be written out as: `fun x -> (x * 2);`. Note: the infix expression is surrounded by braces, to handle operations in the right order.
+Which in turn can be written out as: `fun (x) -> (x * 2);`. Note: the infix expression is surrounded by braces, to handle operations in the right order.
 
 ## Setup
 Use the following command in the root directory to start the REPL:

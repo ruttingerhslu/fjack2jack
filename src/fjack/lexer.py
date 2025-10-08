@@ -1,5 +1,3 @@
-from typing import final
-
 from .token import Token, TokenType
 
 keywords = {
@@ -13,12 +11,12 @@ def lookup_ident(ident: str) -> TokenType:
     """
     return keywords.get(ident, TokenType.IDENT)
 
-@final
 class Lexer():
     input: str
     position: int
     read_position: int
     ch: str
+
     def __init__(self, input: str):
         self.input = input
         self.position = 0
@@ -59,6 +57,10 @@ class Lexer():
                     token = Token(TokenType.ARROW, literal)
                 else:
                     token = Token(TokenType.MINUS, self.ch)
+            case '(':
+                token = Token(TokenType.LPAREN, self.ch)
+            case ')':
+                token = Token(TokenType.RPAREN, self.ch)
             case ';':
                 token = Token(TokenType.SEMICOLON, self.ch)
             case '\0':

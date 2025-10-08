@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class Node:
@@ -14,7 +14,7 @@ class Statement(Node):
 
 @dataclass
 class Program(Node):
-    statements: list[Statement]
+    statements: list[Statement] = field(default_factory=list)
 
     def __str__(self):
             return "".join(str(s) for s in self.statements)
@@ -37,11 +37,11 @@ class ExpressionStatement(Statement):
 @dataclass
 class FunctionLiteral(Expression):
     parameters: list["Identifier"]
-    body: Expression
+    body: Expression | None = None
 
     def __str__(self):
         params = ", ".join(str(p) for p in self.parameters)
-        return f"fun {params} -> {self.body};"
+        return f"fun ({params}) -> {self.body};"
 
 @dataclass
 class InfixExpression(Expression):
