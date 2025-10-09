@@ -15,6 +15,7 @@ INDEX = 8
 
 PRECEDENCES = {
     TokenType.MINUS: SUM,
+    TokenType.PLUS: SUM,
     TokenType.ASTERISK: PRODUCT,
 }
 
@@ -49,6 +50,7 @@ class Parser():
         self.register_prefix(TokenType.INT, self.parse_integer_literal)
 
         self.register_infix(TokenType.ASTERISK, self.parse_infix_expr)
+        self.register_infix(TokenType.PLUS, self.parse_infix_expr)
         self.register_infix(TokenType.MINUS, self.parse_infix_expr)
 
     def register_prefix(self, token_type: TokenType, fn: Callable[[], Expression]):
@@ -62,8 +64,8 @@ class Parser():
         self.cur_token = self.peek_token
         self.peek_token = self.l.next_token()
 
-    def expect_peek(self, token_type: TokenType):
-        """Checks if next tokens meets expectations and moves advances."""
+    def consume(self, token_type: TokenType):
+        """Checks if next token meets expectation and if so advances."""
         if self.peek_token.type == token_type:
             self.next_token()
         else:
@@ -73,31 +75,20 @@ class Parser():
     def parse_program(self) -> Program:
         program = Program()
         while self.cur_token != TokenType.EOF:
-            statement = self.parse_statement()
-            program.statements.append(statement)
+            expression = self.parse_expression(LOWEST)
+            program.expressions.append(expression)
             if self.peek_token.type == TokenType.EOF:
                 break
             self.next_token()
         return program
 
-    def parse_statement(self) -> Statement:
-        match self.cur_token.type:
-            case _:
-                return self.parse_expr_statement()
-
-    def parse_expr_statement(self) -> ExpressionStatement:
-        expr = self.parse_expression(LOWEST)
-        self.expect_peek(TokenType.SEMICOLON)
-        return ExpressionStatement(expr)
-
     def parse_expression(self, precedence: int) -> Expression:
         prefix = self.prefix_parse_fns.get(self.cur_token.type)
         if prefix is None:
-            raise ParserError(f"No prefix parse function for {self.cur_token.type} found.")
+            raise ParserError(f"No prefix parse function for {self.cur_token.literal} found.")
         left_expr = prefix()
-        while (
-            self.peek_token.type != TokenType.SEMICOLON
-            and precedence < self.peek_precedence()
+        while precedence < self.peek_precedence() or (
+            precedence == self.peek_precedence() and self.peek_token == TokenType.ARROW
         ):
             infix = self.infix_parse_fns.get(self.peek_token.type)
             if infix is None:
@@ -133,11 +124,11 @@ class Parser():
         """Parse function literal: fun (params) -> expr"""
         lit = FunctionLiteral(parameters=[], body=None)
 
-        self.expect_peek(TokenType.LPAREN)
+        self.consume(TokenType.LPAREN)
 
         lit.parameters = self.parse_function_parameters()
 
-        self.expect_peek(TokenType.ARROW)
+        self.consume(TokenType.ARROW)
 
         self.next_token()
         lit.body = self.parse_expression(LOWEST)
@@ -160,7 +151,7 @@ class Parser():
             self.next_token()
             identifiers.append(Identifier(self.cur_token.literal))
 
-        if not self.expect_peek(TokenType.RPAREN):
+        if not self.consume(TokenType.RPAREN):
             return []
 
         return identifiers

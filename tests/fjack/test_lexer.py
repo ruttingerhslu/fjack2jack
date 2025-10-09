@@ -5,7 +5,7 @@ from fjack.token import Token, TokenType
 
 class TestLexer(unittest.TestCase):
     def test_next_token(self):
-        input_ = 'fun (x) -> x * 2;'
+        input_ = 'fun (x) -> x * 2'
         l = Lexer(input_)
 
         expected_tokens = [
@@ -17,7 +17,6 @@ class TestLexer(unittest.TestCase):
             Token(TokenType.IDENT, 'x'),
             Token(TokenType.ASTERISK, '*'),
             Token(TokenType.INT, '2'),
-            Token(TokenType.SEMICOLON, ';'),
             Token(TokenType.EOF, ''),
         ]
 

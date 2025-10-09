@@ -49,6 +49,8 @@ class Lexer():
         match self.ch:
             case '*':
                 token = Token(TokenType.ASTERISK, self.ch)
+            case '+':
+                token = Token(TokenType.PLUS, self.ch)
             case '-':
                 if self.peek_char() == '>':
                     ch = self.ch

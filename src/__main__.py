@@ -5,10 +5,11 @@ from fjack.lexer import Lexer
 
 class Repl(code.InteractiveConsole):
     @override
-    def runsource(self, source, filename="<input>", symbol="single"):
+    def runsource(self, source: str, filename: str="<input>", symbol: str="single"):
         lexer = Lexer(source)
         for token in lexer:
             print(token)
+        return True
 
 def main():
     repl = Repl()

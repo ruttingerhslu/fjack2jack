@@ -10,6 +10,7 @@ class TokenType(str, Enum):
 
     ASTERISK = "*"
     MINUS = "-"
+    PLUS = "+"
 
     LPAREN = "("
     RPAREN = ")"

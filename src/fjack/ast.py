@@ -9,30 +9,11 @@ class Expression(Node):
     pass
 
 @dataclass
-class Statement(Node):
-    pass
-
-@dataclass
 class Program(Node):
-    statements: list[Statement] = field(default_factory=list)
+    expressions: list[Expression] = field(default_factory=list)
 
     def __str__(self):
-            return "".join(str(s) for s in self.statements)
-
-@dataclass
-class LetStatement(Statement):
-    name: "Identifier"
-    value: Expression
-
-    def __str__(self):
-        return f"let {self.name} = {self.value};"
-
-@dataclass
-class ExpressionStatement(Statement):
-    expression: Expression
-
-    def __str__(self):
-        return str(self.expression)
+            return "".join(str(e) for e in self.expressions)
 
 @dataclass
 class FunctionLiteral(Expression):
@@ -41,7 +22,7 @@ class FunctionLiteral(Expression):
 
     def __str__(self):
         params = ", ".join(str(p) for p in self.parameters)
-        return f"fun ({params}) -> {self.body};"
+        return f"fun ({params}) -> {self.body}"
 
 @dataclass
 class InfixExpression(Expression):
