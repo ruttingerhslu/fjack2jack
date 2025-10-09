@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Literal
 
 # === Base Nodes ===
 
@@ -68,7 +69,7 @@ class Class(Node):
 
 @dataclass
 class ClassVarDec(Declaration):
-    varType: str  # 'static' | 'field'
+    varType: Literal['static', 'field']
     dataType: "Type"
     names: list[VarName]
 
@@ -81,7 +82,7 @@ class ClassVarDec(Declaration):
 
 @dataclass
 class Type(Node):
-    value: str | ClassName  # 'int' | 'char' | 'boolean' | ClassName
+    value: Literal['int', 'char', 'boolean'] | ClassName
 
     def __str__(self):
         return self.value if isinstance(self.value, str) else str(self.value)
@@ -108,7 +109,7 @@ class SubroutineBody(Node):
 
 @dataclass
 class SubroutineDec(Declaration):
-    type: str  # 'constructor' | 'function' | 'method'
+    type: Literal['constructor', 'function', 'method']
     returnType: str | Type
     name: SubroutineName
     parameters: list[Parameter]
@@ -211,7 +212,7 @@ class SubroutineCall(Node):
 @dataclass
 class Expression(Node):
     left: "Term"
-    operator: str | None  # '+', '-', '*', '/', '&', '|', '<', '>', '='
+    operator: Literal['+', '-', '*', '/', '&', '|', '<', '>', '='] | None
     right: "Term | None "
 
     def __str__(self):
@@ -220,7 +221,7 @@ class Expression(Node):
 
 @dataclass
 class Term(Node):
-    unaryOp: str | None  # '-', '~'
+    unaryOp: Literal['-', '~'] | None
     value: "IntegerConstant | StringConstant | KeywordConstant \
         | VarName | ArrayIndex | SubroutineCall | Expression | Term"
 
@@ -252,7 +253,7 @@ class StringConstant(Node):
 
 @dataclass
 class KeywordConstant(Node):
-    value: str  # 'true' | 'false' | 'null' | 'this'
+    value: Literal['true', 'false', 'null', 'this']
 
     def __str__(self):
         return self.value
