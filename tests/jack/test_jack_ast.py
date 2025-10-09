@@ -1,0 +1,35 @@
+import unittest
+
+from jack.ast import *
+
+class TestJackAst(unittest.TestCase):
+    def test_program_to_string(self):
+        program = Program(classes=[Class(name=ClassName(value="Bar"),
+                classVars=None,
+                subroutines=[
+                    SubroutineDec(
+                        type= "method",
+                        returnType= "Fraction",
+                        name= SubroutineName(value="foo"),
+                            parameters=[Parameter(type= Type(value="int"), varName = VarName(value= "y"))],
+                        body= SubroutineBody(
+                            variables=[VarDec(type= Type(value="int"), names= [VarName(value="temp")])],
+                            statements= [Statement(type=LetStatement(varName=VarName(value="temp"), index= None, expression= Expression(
+                                left= Term(unaryOp=None, type= VarName(value= "y")),
+                                operator= '+',
+                                right= Term(unaryOp=None, type= IntegerConstant(value= 12))
+                            )))]
+                        )
+                    )
+                ]
+            )
+        ])
+
+        expected = "\
+            class Bar { \
+                method Fraction foo(int y) { \
+                    var int temp; \
+                    let temp = y+12;\
+                } \
+            }"
+        self.assertEqual(str(program), expected)
