@@ -13,7 +13,7 @@ class Program(Node):
     expressions: list[Expression] = field(default_factory=list)
 
     def __str__(self):
-            return "".join(str(e) for e in self.expressions)
+        return "".join(str(e) for e in self.expressions)
 
 @dataclass
 class FunctionLiteral(Expression):
