@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 
+# === Base Nodes ===
+
 @dataclass
 class Node:
     pass
@@ -8,6 +10,8 @@ class Node:
 class Declaration(Node):
     pass
 
+# === Program Structure ===
+
 @dataclass
 class Program(Node):
     classes: list["Class"] = field(default_factory=list)
@@ -15,87 +19,77 @@ class Program(Node):
     def __str__(self):
         return "".join(str(c) for c in self.classes)
 
+# === Identifiers ===
+
 @dataclass
-class Identifier():
+class Identifier(Node):
     value: str
 
     def __str__(self):
         return self.value
-
-@dataclass
-class Class(Node):
-    name: "ClassName"
-    classVars: list["ClassVarDec"] | None
-    subroutines: list["SubroutineDec"] | None
-
-    def __str__(self):
-        """'class' className '{' classVarDec* subroutineDec* '}'"""
-        return f"class {self.name} {{ {self.classVars} {self.subroutines} }}"
 
 @dataclass
 class ClassName(Identifier):
-    value: str
-
-    def __str__(self):
-        return self.value
+    pass
 
 @dataclass
 class SubroutineName(Identifier):
-    value: str
-
-    def __str__(self):
-        return self.value
+    pass
 
 @dataclass
 class VarName(Identifier):
-    value: str
-
-    def __str__(self):
-        return self.value
+    pass
 
 @dataclass
-class ArrayIndex(Identifier):
-    name: str
+class ArrayIndex(Node):
+    name: VarName
     index: "Expression"
 
     def __str__(self):
         return f"{self.name}[{self.index}]"
 
+# === Class Structure ===
+
+@dataclass
+class Class(Node):
+    name: ClassName
+    classVars: list["ClassVarDec"] | None
+    subroutines: list["SubroutineDec"] | None
+
+    def __str__(self):
+        """'class' className '{' classVarDec* subroutineDec* '}'"""
+        parts: list[str] = []
+        if self.classVars:
+            parts.append("".join(str(v) for v in self.classVars))
+        if self.subroutines:
+            parts.append("".join(str(s) for s in self.subroutines))
+        body = " ".join(parts)
+        return f"class {self.name} {{ {body} }}"
+
 @dataclass
 class ClassVarDec(Declaration):
-    varType: str # 'static' | 'field'
-    dataType: type
-    names: list["Identifier"]
+    varType: str  # 'static' | 'field'
+    dataType: "Type"
+    names: list[VarName]
 
     def __str__(self):
         """('static' | 'field') type varName (',' varName)* ';'"""
-        vars = ", ".join(str(v) for v in self.names)
-        return f"{self.varType} {self.dataType} {vars};"
+        vars_str = ", ".join(str(v) for v in self.names)
+        return f"{self.varType} {self.dataType} {vars_str};"
+
+# === Types ===
 
 @dataclass
-class Type:
-    value: str | ClassName  # str: 'int' | 'char' | 'boolean'
+class Type(Node):
+    value: str | ClassName  # 'int' | 'char' | 'boolean' | ClassName
 
     def __str__(self):
-        return self.value if isinstance(self.value, str) else self.value.value
+        return self.value if isinstance(self.value, str) else str(self.value)
+
+# === Subroutines ===
 
 @dataclass
-class SubroutineDec(Declaration):
-    type: str # str: 'constructor' | 'function' | 'method'
-    returnType: str | Type # str: 'void'
-    name: SubroutineName
-    parameters: list["Parameter"]
-    body: "SubroutineBody"
-
-    def __str__(self):
-        """('constructor' | 'function' | 'method')
-        ('void' | type) subroutineName '(' parameterList ')'
-        subroutineBody"""
-        params = ", ".join(str(p) for p in self.parameters)
-        return f"{self.type} {self.returnType} {self.name} ({params}) {self.body}"
-
-@dataclass
-class Parameter:
+class Parameter(Node):
     type: Type
     varName: VarName
 
@@ -103,50 +97,69 @@ class Parameter:
         return f"{self.type} {self.varName}"
 
 @dataclass
-class SubroutineBody:
-    variables: list["VarDec"]
-    statements: list["Statement"]
+class SubroutineBody(Node):
+    variables: list["VarDec"] = field(default_factory=list)
+    statements: list["Statement"] = field(default_factory=list)
 
     def __str__(self):
-        variables = "".join(str(s) for s in self.variables)
+        variables = "".join(str(v) for v in self.variables)
         statements = "".join(str(s) for s in self.statements)
         return f"{{ {variables} {statements} }}"
 
 @dataclass
-class VarDec:
+class SubroutineDec(Declaration):
+    type: str  # 'constructor' | 'function' | 'method'
+    returnType: str | Type
+    name: SubroutineName
+    parameters: list[Parameter]
+    body: SubroutineBody
+
+    def __str__(self):
+        """('constructor' | 'function' | 'method')
+        ('void' | type) subroutineName '(' parameterList ')'
+        subroutineBody"""
+        params = ", ".join(str(p) for p in self.parameters)
+        return f"{self.type} {self.returnType} {self.name}({params}) {self.body}"
+
+# === Variables ===
+
+@dataclass
+class VarDec(Node):
     type: Type
-    names: list["VarName"]
+    names: list[VarName]
 
     def __str__(self):
-        return f"var {self.type} {self.names[0]}"
+        names_str = ", ".join(str(n) for n in self.names)
+        return f"var {self.type} {names_str};"
+
+# === Statements ===
 
 @dataclass
-class Statement:
-    type: "LetStatement | IfStatement | WhileStatement | DoStatement | ReturnStatement"
+class Statement(Node):
+    value: "LetStatement | IfStatement | WhileStatement | DoStatement | ReturnStatement"
 
     def __str__(self):
-        return str(self.type)
+        return str(self.value)
 
 @dataclass
-class LetStatement:
+class LetStatement(Node):
     varName: VarName
-    index: "Expression | None"
+    index: "Expression | None "
     expression: "Expression"
 
     def __str__(self):
         """'let' varName ('[' expression ']')? '=' expression ';'"""
         key = f"[{self.index}]" if self.index else ""
-        return f"let {self.varName.value}{key} = {self.expression};"
+        return f"let {self.varName}{key} = {self.expression};"
 
 @dataclass
-class IfStatement:
+class IfStatement(Node):
     condition: "Expression"
-    statements: list["Statement"]
-    elseStatements: list["Statement"] | None
+    statements: list[Statement]
+    elseStatements: list[Statement] | None
 
     def __str__(self):
-        """'if' '(' expression ')' '{' statements '}'
-            ('else' '{' statements '}')?"""
+        """'if' '(' expression ')' '{' statements '}' ('else' '{' statements '}')?"""
         if_block = "".join(str(s) for s in self.statements)
         else_block = ""
         if self.elseStatements:
@@ -155,17 +168,17 @@ class IfStatement:
         return f"if ({self.condition}) {{ {if_block} }}{else_block}"
 
 @dataclass
-class WhileStatement:
+class WhileStatement(Node):
     condition: "Expression"
-    statements: list["Statement"]
+    statements: list[Statement]
 
     def __str__(self):
-        """'while' '(' expression ')' '{' statements '}"""
-        statements = "".join(str(s) for s in self.statements)
-        return f"while ({self.condition}) {{ {statements} }}"
+        """'while' '(' expression ')' '{' statements '}'"""
+        statements_str = "".join(str(s) for s in self.statements)
+        return f"while ({self.condition}) {{ {statements_str} }}"
 
 @dataclass
-class DoStatement:
+class DoStatement(Node):
     subroutineCall: "SubroutineCall"
 
     def __str__(self):
@@ -173,76 +186,73 @@ class DoStatement:
         return f"do {self.subroutineCall};"
 
 @dataclass
-class SubroutineCall:
+class ReturnStatement(Node):
+    value: "Expression | None "
+
+    def __str__(self):
+        value_str = f" {self.value}" if self.value else ""
+        return f"return{value_str};"
+
+# === Expressions ===
+
+@dataclass
+class SubroutineCall(Node):
     parent: ClassName | VarName | None
     name: SubroutineName
     parameters: list["Expression"] | None
 
     def __str__(self):
-        """subroutineName '(' expressionList ')' | (className |
-        varName) '.' subroutineName '(' expressionList ')'"""
-        parent = f"{self.parent.value}." if isinstance(self.parent, (ClassName, VarName)) else ""
-        if self.parameters:
-            params = ", ".join(str(p) for p in self.parameters)
-        else:
-            params = ""
+        """subroutineName '(' expressionList ')' |
+        (className | varName) '.' subroutineName '(' expressionList ')'"""
+        parent = f"{self.parent}." if isinstance(self.parent, (ClassName, VarName)) else ""
+        params = ", ".join(str(p) for p in self.parameters) if self.parameters else ""
         return f"{parent}{self.name}({params})"
 
 @dataclass
-class ReturnStatement:
-    value: "Expression | None"
-
-    def __str__(self):
-        return f"return {self.value};"
-
-@dataclass
-class Expression:
+class Expression(Node):
     left: "Term"
-    operator: str | None # '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '='
-    right: "Term | None"
+    operator: str | None  # '+', '-', '*', '/', '&', '|', '<', '>', '='
+    right: "Term | None "
 
     def __str__(self):
-        right = f"{self.operator} {self.right}" if self.operator else ""
-        return f"{self.left} {right}"
+        right = f" {self.operator} {self.right}" if self.operator else ""
+        return f"{self.left}{right}"
 
 @dataclass
-class Term:
-    unaryOp: str | None # '-', '~'
-    type: "IntegerConstant | StringConstant | KeywordConstant \
-    | VarName | ArrayIndex | SubroutineCall | Expression | Term"
+class Term(Node):
+    unaryOp: str | None  # '-', '~'
+    value: "IntegerConstant | StringConstant | KeywordConstant \
+        | VarName | ArrayIndex | SubroutineCall | Expression | Term"
 
     def __str__(self):
         """integerConstant | stringConstant | keywordConstant |
         varName | varName '[' expression ']' | subroutineCall |
         '(' expression ')' | unaryOp term"""
-        prefix, postfix = ""
-        match self.type:
-            case ArrayIndex():
-                prefix = "["
-                postfix = "]"
-            case Expression():
-                prefix = "("
-                postfix = ")"
-            case Term():
-                prefix = self.unaryOp
-            case _:
-                pass
-        return f"{prefix}{self.type}{postfix}"
+        if self.unaryOp:
+            return f"{self.unaryOp}{self.value}"
+        if isinstance(self.value, Expression):
+            return f"({self.value})"
+        return str(self.value)
+
+# === Constants ===
 
 @dataclass
-class IntegerConstant:
+class IntegerConstant(Node):
     value: int
+
     def __str__(self):
         return str(self.value)
 
 @dataclass
-class StringConstant:
+class StringConstant(Node):
     value: str
+
     def __str__(self):
-        return self.value
+        return f'"{self.value}"'
 
 @dataclass
-class KeywordConstant:
-    value: str # 'true' | 'false' | 'null' | 'this'
+class KeywordConstant(Node):
+    value: str  # 'true' | 'false' | 'null' | 'this'
+
     def __str__(self):
         return self.value
