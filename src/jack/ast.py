@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-# === Base Nodes ===
-
 @dataclass
 class Node:
     pass
@@ -11,16 +9,12 @@ class Node:
 class Declaration(Node):
     pass
 
-# === Program Structure ===
-
 @dataclass
 class Program(Node):
     classes: list["Class"] = field(default_factory=list)
 
     def __str__(self):
         return "".join(str(c) for c in self.classes)
-
-# === Identifiers ===
 
 @dataclass
 class Identifier(Node):
@@ -49,8 +43,6 @@ class ArrayIndex(Node):
     def __str__(self):
         return f"{self.name}[{self.index}]"
 
-# === Class Structure ===
-
 @dataclass
 class Class(Node):
     name: ClassName
@@ -78,16 +70,12 @@ class ClassVarDec(Declaration):
         vars_str = ", ".join(str(v) for v in self.names)
         return f"{self.varType} {self.dataType} {vars_str};"
 
-# === Types ===
-
 @dataclass
 class Type(Node):
     value: Literal['int', 'char', 'boolean'] | ClassName
 
     def __str__(self):
         return self.value if isinstance(self.value, str) else str(self.value)
-
-# === Subroutines ===
 
 @dataclass
 class Parameter(Node):
@@ -122,8 +110,6 @@ class SubroutineDec(Declaration):
         params = ", ".join(str(p) for p in self.parameters)
         return f"{self.type} {self.returnType} {self.name}({params}) {self.body}"
 
-# === Variables ===
-
 @dataclass
 class VarDec(Node):
     type: Type
@@ -132,8 +118,6 @@ class VarDec(Node):
     def __str__(self):
         names_str = ", ".join(str(n) for n in self.names)
         return f"var {self.type} {names_str};"
-
-# === Statements ===
 
 @dataclass
 class Statement(Node):
@@ -194,8 +178,6 @@ class ReturnStatement(Node):
         value_str = f" {self.value}" if self.value else ""
         return f"return{value_str};"
 
-# === Expressions ===
-
 @dataclass
 class SubroutineCall(Node):
     parent: ClassName | VarName | None
@@ -234,8 +216,6 @@ class Term(Node):
         if isinstance(self.value, Expression):
             return f"({self.value})"
         return str(self.value)
-
-# === Constants ===
 
 @dataclass
 class IntegerConstant(Node):

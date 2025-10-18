@@ -46,3 +46,8 @@ class IntegerLiteral(Expression):
 
     def __str__(self):
         return str(self.value)
+
+@dataclass
+class FunctionApplication(Expression):
+    function: Expression
+    argument: Expression
