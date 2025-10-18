@@ -51,3 +51,6 @@ class IntegerLiteral(Expression):
 class FunctionApplication(Expression):
     function: Expression
     argument: Expression
+
+    def __str__(self):
+            return f"({self.function} {self.argument})"
