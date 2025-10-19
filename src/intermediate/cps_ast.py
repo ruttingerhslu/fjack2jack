@@ -32,4 +32,4 @@ def cps_transform(expr: Expression | None, k: Expression) -> Expression:
             new_body = cps_transform(expr.body, Identifier("k"))
             return FunctionLiteral(new_params, new_body)
         case _:
-            raise NotImplementedError(f"Unsupported expression: {expr}")
+            raise NotImplementedError(f"Unsupported expression: {type(expr)}")

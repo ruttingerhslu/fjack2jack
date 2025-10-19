@@ -59,7 +59,6 @@ def cps_to_ssa(
         case FunctionLiteral():
             body_items, ret_var = cps_to_ssa(expr.body, temp_gen, label_gen)
 
-            # Separate statements and nested procedures
             body_stmts: list[SSAStatement] = [s for s in body_items if isinstance(s, SSAStatement)]
             nested_procs: list[SSAProcedure] = [p for p in body_items if isinstance(p, SSAProcedure)]
 

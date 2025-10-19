@@ -130,8 +130,10 @@ class Parser():
 
         self.consume(TokenType.ARROW)
 
+        self.consume(TokenType.LPAREN)
         self.next_token()
         lit.body = self.parse_expression(LOWEST)
+        self.consume(TokenType.RPAREN)
 
         return lit
 
