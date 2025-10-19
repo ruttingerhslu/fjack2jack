@@ -16,10 +16,14 @@ class TokenType(str, Enum):
     RPAREN = ")"
     ARROW = "->"
     COMMA = ","
-    SEMICOLON = ";"
 
     # keywords
     FUNCTION = "FUNCTION"
+
+    LAMBDA = "LAMBDA"
+    IF = "IF"
+    LET = "LET"
+    LOOP = "LOOP"
 
 @final
 class Token:

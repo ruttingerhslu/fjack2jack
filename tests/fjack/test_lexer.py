@@ -5,18 +5,21 @@ from fjack.token import Token, TokenType
 
 class TestLexer(unittest.TestCase):
     def test_next_token(self):
-        input_ = 'fun (x) -> x * 2'
+        input_ = '(λ (x) (+ x 1))'
         l = Lexer(input_)
 
         expected_tokens = [
-            Token(TokenType.FUNCTION, 'fun'),
+            Token(TokenType.LPAREN, '('),
+            Token(TokenType.LAMBDA, 'λ'),
             Token(TokenType.LPAREN, '('),
             Token(TokenType.IDENT, 'x'),
             Token(TokenType.RPAREN, ')'),
-            Token(TokenType.ARROW, '->'),
+            Token(TokenType.LPAREN, '('),
+            Token(TokenType.PLUS, '+'),
             Token(TokenType.IDENT, 'x'),
-            Token(TokenType.ASTERISK, '*'),
-            Token(TokenType.INT, '2'),
+            Token(TokenType.INT, '1'),
+            Token(TokenType.RPAREN, ')'),
+            Token(TokenType.RPAREN, ')'),
             Token(TokenType.EOF, ''),
         ]
 
