@@ -9,6 +9,16 @@ class ParserError(Exception):
 
 @final
 class Parser:
+    """
+        M ::=   E | (E E*) | (if E M M) |
+                (let ((x M)) M ) |
+                (loop l ((x E)*) M) |
+                (l E*)
+        E ::=   x | (+E E) | ...
+        P ::=   (λ (x*) M)
+        where x ∈ variables
+              l ∈ labels
+    """
     def __init__(self, lexer: Lexer):
         self.l = lexer
         self.curr_token: Token = Token()
@@ -36,22 +46,33 @@ class Parser:
         else:
             raise ParserError(f"Expected next token {token_type}, got {self.peek_token.type} instead.")
 
-    # top level
+    # parse functions
     def parse_program(self) -> Program:
-        program = Program()
-        while self.curr_token.type != TokenType.EOF:
-            m = self.parse_m()
-            program.body.append(m)
-        return program
+        """
+            P ::= (λ (x*) M)
+        """
+        self.expect_curr(TokenType.LPAREN)
+        self.expect_curr(TokenType.LAMBDA)
+        self.expect_curr(TokenType.LPAREN)
+        params: list[Identifier] = []
+        while self.curr_token.type != TokenType.RPAREN:
+            if self.curr_token.type != TokenType.IDENT:
+                raise ParserError(f"Expected parameter name, got {self.curr_token.type}")
+            params.append(Identifier(self.curr_token.literal))
+            self.next_token()
+        self.expect_curr(TokenType.RPAREN)
+        body = self.parse_m()
+        self.expect_curr(TokenType.RPAREN)
+        return Program(params, body)
 
     def parse_m(self) -> M:
         """
-        M ::= E
-            | (E E*)
-            | (if E M M)
-            | (let ((x M)) M)
-            | (loop l ((x E)*) M)
-            | (l E*)
+            M ::= E
+                | (E E*)
+                | (if E M M)
+                | (let ((x M)) M)
+                | (loop l ((x E)*) M)
+                | (l E*)
         """
         if self.curr_token.type == TokenType.LPAREN:
             return self.parse_list_form()
@@ -61,35 +82,27 @@ class Parser:
 
     def parse_list_form(self) -> M:
         self.expect_curr(TokenType.LPAREN)
+
         if self.curr_token.type == TokenType.RPAREN:
             raise ParserError("Unexpected empty list '()'")
 
-        first = self.curr_token
-
-        match first.type:
+        match self.curr_token.type:
             case TokenType.IF:
-                # (if E M M)
                 return self.parse_if_form()
             case TokenType.LET:
-                # (let ((x M)) M)
                 return self.parse_let_form()
             case TokenType.LOOP:
                 return self.parse_loop_form()
-            case t if t in (TokenType.LAMBDA, TokenType.FUNCTION):
-                lam = self.parse_lambda_form()
-                return lam
+            case TokenType.PLUS | TokenType.MINUS | TokenType.ASTERISK | TokenType.SLASH:
+                return self.parse_e()
             case _:
-                pass
-
-        # (E E*)
-        func = self.parse_e()
-        args: list[Expression] = []
-
-        while self.curr_token.type != TokenType.RPAREN:
-            args.append(self.parse_e())
-
-        self.expect_curr(TokenType.RPAREN)
-        return Call(func, args)
+                # (E E*)
+                func = self.parse_e()
+                args: list[Expression] = []
+                while self.curr_token.type != TokenType.RPAREN:
+                    args.append(self.parse_e())
+                self.expect_curr(TokenType.RPAREN)
+                return Call(func, args)
 
     def parse_e(self) -> Expression:
         """E ::= x | INT | (+ E E) | ... """
@@ -102,19 +115,13 @@ class Parser:
                 val = IntegerLiteral(int(self.curr_token.literal, 0))
                 self.next_token()
                 return val
-            case TokenType.LPAREN:
+            case t if t in [TokenType.PLUS, TokenType.MINUS, TokenType.ASTERISK, TokenType.SLASH]:
+                op = self.curr_token.literal
                 self.next_token()
-                if self.curr_token.literal in ['+', '*', '/', '-']:
-                    op = self.curr_token.literal
-                    self.next_token()
-                    operands: list[Expression] = []
-                    operands.append(self.parse_e())
-                    operands.append(self.parse_e())
-                    self.expect_peek(TokenType.RPAREN)
-                    return PrefixExpression(op, operands)
-                raise ParserError(
-                    f"Expected operator after '(', got {self.curr_token.type} ({self.curr_token.literal})"
-                )
+                operands: list[Expression] = []
+                operands.append(self.parse_e())
+                operands.append(self.parse_e())
+                return PrefixExpression(op, operands)
             case _:
                 raise ParserError(f"Unexpected token in expression: {self.curr_token.type} ({self.curr_token.literal})")
 
@@ -129,7 +136,7 @@ class Parser:
         return If(cond, then_branch, else_branch)
 
     def parse_let_form(self) -> Let:
-        # (let ((x M)) M)
+        """(let ((x M)) M)"""
         self.expect_curr(TokenType.LET)
         self.expect_curr(TokenType.LPAREN)
         self.expect_curr(TokenType.LPAREN)
@@ -143,7 +150,7 @@ class Parser:
         return Let(name, value, body)
 
     def parse_loop_form(self) -> Loop:
-        # (loop l ((x E)*) M)
+        """(loop l ((x E)*) M)"""
         self.expect_curr(TokenType.LOOP)
         label = self.curr_token.literal
         self.expect_curr(TokenType.IDENT)
@@ -160,18 +167,3 @@ class Parser:
         body = self.parse_m()
         self.expect_curr(TokenType.RPAREN)
         return Loop(label, bindings, body)
-
-    def parse_lambda_form(self) -> Lambda:
-        # ( λ (x*) M)
-        self.expect_curr(TokenType.LAMBDA)
-        self.expect_curr(TokenType.LPAREN)
-        params: list[Identifier] = []
-        while self.curr_token.type != TokenType.RPAREN:
-            if self.curr_token.type != TokenType.IDENT:
-                raise ParserError(f"Expected parameter name, got {self.curr_token.type}")
-            params.append(Identifier(self.curr_token.literal))
-            self.next_token()
-        self.expect_curr(TokenType.RPAREN)
-        body = self.parse_m()
-        self.expect_curr(TokenType.RPAREN)
-        return Lambda(params, body)

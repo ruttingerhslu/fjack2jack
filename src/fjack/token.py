@@ -11,6 +11,7 @@ class TokenType(str, Enum):
     ASTERISK = "*"
     MINUS = "-"
     PLUS = "+"
+    SLASH = "/"
 
     LPAREN = "("
     RPAREN = ")"
@@ -19,7 +20,6 @@ class TokenType(str, Enum):
 
     # keywords
     FUNCTION = "FUNCTION"
-
     LAMBDA = "LAMBDA"
     IF = "IF"
     LET = "LET"

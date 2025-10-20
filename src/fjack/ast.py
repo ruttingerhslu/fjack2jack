@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 @dataclass
 class Node:
@@ -75,16 +75,9 @@ class LabelCall(M):
 
 # P ::= (λ (x*) M)
 @dataclass
-class Lambda(Expression):
+class Program(Node):
     parameters: list[Identifier]
     body: M
     def __str__(self):
         params = " ".join(map(str, self.parameters))
         return f"(λ ({params}) {self.body})"
-
-# top level
-@dataclass
-class Program(Node):
-    body: list[M] = field(default_factory=list)
-    def __str__(self):
-        return "\n".join(str(m) for m in self.body)

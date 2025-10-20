@@ -1,5 +1,3 @@
-import unicodedata
-
 from .token import Token, TokenType
 
 keywords = {
@@ -68,8 +66,6 @@ class Lexer():
                 token = Token(TokenType.LPAREN, self.ch)
             case ')':
                 token = Token(TokenType.RPAREN, self.ch)
-            case ';':
-                token = Token(TokenType.SEMICOLON, self.ch)
             case '\0':
                 token = Token(TokenType.EOF, '')
             case _:
