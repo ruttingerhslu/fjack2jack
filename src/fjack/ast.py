@@ -32,9 +32,9 @@ class PrefixExpression(Expression):
     def __str__(self):
         return f"({self.operator} {self.operands[0]} {self.operands[1]})"
 
-# M ::= (E E*) | (if E M M) | (let ((x M)) M) | (loop l ((x E)*) M) | (l E*)
 @dataclass
 class Call(M):
+    """(E E*)"""
     func: Expression
     args: list[Expression]
     def __str__(self):
@@ -43,6 +43,7 @@ class Call(M):
 
 @dataclass
 class If(M):
+    """(if E M M)"""
     condition: Expression
     then_branch: M
     else_branch: M
@@ -50,32 +51,51 @@ class If(M):
         return f"(if {self.condition} {self.then_branch} {self.else_branch})"
 
 @dataclass
-class Let(M):
-    name: Identifier
+class BindingM(Node):
+    """(x M)"""
+    var: Identifier
     value: M
+    def __str__(self):
+        return f"({self.var} {self.value})"
+
+@dataclass
+class BindingE(Node):
+    """(x E)"""
+    var: Identifier
+    value: Expression
+    def __str__(self):
+        return f"({self.var} {self.value})"
+
+@dataclass
+class Let(M):
+    """(let ((x M)) M)"""
+    bindings: list[BindingM]
     body: M
     def __str__(self):
-        return f"(let (({self.name} {self.value})) {self.body})"
+        binds = " ".join(map(str, self.bindings))
+        return f"(let ({binds}) {self.body})"
 
 @dataclass
 class Loop(M):
+    """(loop l ((x E)*) M)"""
     label: str
-    bindings: list[tuple[Identifier, Expression]]
+    bindings: list[BindingE]
     body: M
     def __str__(self):
-        binds = " ".join(f"({x} {e})" for x, e in self.bindings)
+        binds = " ".join(map(str, self.bindings))
         return f"(loop {self.label} ({binds}) {self.body})"
 
 @dataclass
 class LabelCall(M):
+    """(l E*)"""
     label: str
     args: list[Expression]
     def __str__(self):
         return f"({self.label} {' '.join(map(str, self.args))})"
 
-# P ::= (λ (x*) M)
 @dataclass
 class Program(Node):
+    """(λ (x*) M)"""
     parameters: list[Identifier]
     body: M
     def __str__(self):

@@ -147,7 +147,7 @@ class Parser:
         self.expect_curr(TokenType.RPAREN)
         body = self.parse_m()
         self.expect_curr(TokenType.RPAREN)
-        return Let(name, value, body)
+        return Let([BindingM(name, value)], body)
 
     def parse_loop_form(self) -> Loop:
         """(loop l ((x E)*) M)"""
@@ -155,14 +155,14 @@ class Parser:
         label = self.curr_token.literal
         self.expect_curr(TokenType.IDENT)
         self.expect_curr(TokenType.LPAREN)
-        bindings: list[tuple[Identifier, Expression]] = []
+        bindings: list[BindingE] = []
         while self.curr_token.type != TokenType.RPAREN:
             self.expect_curr(TokenType.LPAREN)
             bname = Identifier(self.curr_token.literal)
             self.expect_curr(TokenType.IDENT)
             bexpr = self.parse_e()
             self.expect_curr(TokenType.RPAREN)
-            bindings.append((bname, bexpr))
+            bindings.append(BindingE(bname, bexpr))
         self.expect_curr(TokenType.RPAREN)
         body = self.parse_m()
         self.expect_curr(TokenType.RPAREN)
