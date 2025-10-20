@@ -11,15 +11,19 @@ class TokenType(str, Enum):
     ASTERISK = "*"
     MINUS = "-"
     PLUS = "+"
+    SLASH = "/"
 
     LPAREN = "("
     RPAREN = ")"
     ARROW = "->"
     COMMA = ","
-    SEMICOLON = ";"
 
     # keywords
     FUNCTION = "FUNCTION"
+    LAMBDA = "LAMBDA"
+    IF = "IF"
+    LET = "LET"
+    LOOP = "LOOP"
 
 @final
 class Token:

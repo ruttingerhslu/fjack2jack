@@ -1,157 +1,169 @@
-from typing import Callable
-
-from fjack.ast import *
+from typing import final
+from .ast import *
 from .lexer import Lexer
 from .token import Token, TokenType
-
-LOWEST = 1
-EQUALS = 2
-LESSGREATER = 3
-SUM = 4
-PRODUCT = 5
-PREFIX = 6
-CALL = 7
-INDEX = 8
-
-PRECEDENCES = {
-    TokenType.MINUS: SUM,
-    TokenType.PLUS: SUM,
-    TokenType.ASTERISK: PRODUCT,
-}
 
 class ParserError(Exception):
     """Raised when a parsing error occurs."""
     pass
 
-class Parser():
-    l: Lexer
-
-    errors: list[str]
-
-    cur_token: Token
-    peek_token: Token
-
-    prefix_parse_fns: dict[TokenType, Callable[[], Expression]] = {}
-    infix_parse_fns: dict[TokenType, Callable[[Expression], Expression]] = {}
-
+@final
+class Parser:
+    """
+        M ::=   E | (E E*) | (if E M M) |
+                (let ((x M)) M ) |
+                (loop l ((x E)*) M) |
+                (l E*)
+        E ::=   x | (+E E) | ...
+        P ::=   (λ (x*) M)
+        where x ∈ variables
+              l ∈ labels
+    """
     def __init__(self, lexer: Lexer):
         self.l = lexer
+        self.curr_token: Token = Token()
+        self.peek_token: Token = Token()
 
-        self.errors = []
-
-        # set both current and peek token
-        self.peek_token = Token()
+        # set cur and peek tokens
         self.next_token()
         self.next_token()
 
-        # register prefix and infix fns
-        self.register_prefix(TokenType.IDENT, self.parse_identifier)
-        self.register_prefix(TokenType.FUNCTION, self.parse_function_literal)
-        self.register_prefix(TokenType.INT, self.parse_integer_literal)
-
-        self.register_infix(TokenType.ASTERISK, self.parse_infix_expr)
-        self.register_infix(TokenType.PLUS, self.parse_infix_expr)
-        self.register_infix(TokenType.MINUS, self.parse_infix_expr)
-
-    def register_prefix(self, token_type: TokenType, fn: Callable[[], Expression]):
-        self.prefix_parse_fns[token_type] = fn
-
-    def register_infix(self, token_type: TokenType, fn: Callable[[Expression], Expression]):
-        self.infix_parse_fns[token_type] = fn
-
-    def next_token(self):
-        """Advances to the next token; updating current and peek token."""
-        self.cur_token = self.peek_token
+    # util functions
+    def next_token(self) -> None:
+        """Advance current and peek tokens."""
+        self.curr_token = self.peek_token
         self.peek_token = self.l.next_token()
 
-    def consume(self, token_type: TokenType):
-        """Checks if next token meets expectation and if so advances."""
+    def expect_curr(self, token_type: TokenType):
+        if self.curr_token.type == token_type:
+            self.next_token()
+        else:
+            raise ParserError(f"Expected current token {token_type}, got {self.curr_token.type} instead.")
+
+    def expect_peek(self, token_type: TokenType):
         if self.peek_token.type == token_type:
             self.next_token()
         else:
-            raise ParserError(f"Expected next token to be {self.cur_token.type}, \
-                got {self.peek_token.type} instead.")
+            raise ParserError(f"Expected next token {token_type}, got {self.peek_token.type} instead.")
 
+    # parse functions
     def parse_program(self) -> Program:
-        program = Program()
-        while self.cur_token != TokenType.EOF:
-            expression = self.parse_expression(LOWEST)
-            program.expressions.append(expression)
-            if self.peek_token.type == TokenType.EOF:
-                break
+        """
+            P ::= (λ (x*) M)
+        """
+        self.expect_curr(TokenType.LPAREN)
+        self.expect_curr(TokenType.LAMBDA)
+        self.expect_curr(TokenType.LPAREN)
+        params: list[Identifier] = []
+        while self.curr_token.type != TokenType.RPAREN:
+            if self.curr_token.type != TokenType.IDENT:
+                raise ParserError(f"Expected parameter name, got {self.curr_token.type}")
+            params.append(Identifier(self.curr_token.literal))
             self.next_token()
-        return program
+        self.expect_curr(TokenType.RPAREN)
+        body = self.parse_m()
+        self.expect_curr(TokenType.RPAREN)
+        return Program(params, body)
 
-    def parse_expression(self, precedence: int) -> Expression:
-        prefix = self.prefix_parse_fns.get(self.cur_token.type)
-        if prefix is None:
-            raise ParserError(f"No prefix parse function for {self.cur_token.literal} found.")
-        left_expr = prefix()
-        while precedence < self.peek_precedence() or (
-            precedence == self.peek_precedence() and self.peek_token == TokenType.ARROW
-        ):
-            infix = self.infix_parse_fns.get(self.peek_token.type)
-            if infix is None:
-                return left_expr
+    def parse_m(self) -> M:
+        """
+            M ::= E
+                | (E E*)
+                | (if E M M)
+                | (let ((x M)) M)
+                | (loop l ((x E)*) M)
+                | (l E*)
+        """
+        if self.curr_token.type == TokenType.LPAREN:
+            return self.parse_list_form()
 
-            self.next_token()
-            left_expr = infix(left_expr)
+        e = self.parse_e()
+        return e
 
-        return left_expr
+    def parse_list_form(self) -> M:
+        self.expect_curr(TokenType.LPAREN)
 
-    def parse_infix_expr(self, left: Expression) -> Expression:
-        operator = self.cur_token.literal
-        precedence = self.cur_precedence()
-        self.next_token()
-        right = self.parse_expression(precedence)
-        return InfixExpression(left, operator, right)
+        if self.curr_token.type == TokenType.RPAREN:
+            raise ParserError("Unexpected empty list '()'")
 
-    def cur_precedence(self) -> int:
-        return PRECEDENCES.get(self.cur_token.type, LOWEST)
+        match self.curr_token.type:
+            case TokenType.IF:
+                return self.parse_if_form()
+            case TokenType.LET:
+                return self.parse_let_form()
+            case TokenType.LOOP:
+                return self.parse_loop_form()
+            case TokenType.PLUS | TokenType.MINUS | TokenType.ASTERISK | TokenType.SLASH:
+                return self.parse_e()
+            case _:
+                # (E E*)
+                func = self.parse_e()
+                args: list[Expression] = []
+                while self.curr_token.type != TokenType.RPAREN:
+                    args.append(self.parse_e())
+                self.expect_curr(TokenType.RPAREN)
+                return Call(func, args)
 
-    def peek_precedence(self) -> int:
-        return PRECEDENCES.get(self.peek_token.type, LOWEST)
+    def parse_e(self) -> Expression:
+        """E ::= x | INT | (+ E E) | ... """
+        match self.curr_token.type:
+            case TokenType.IDENT:
+                ident = Identifier(self.curr_token.literal)
+                self.next_token()
+                return ident
+            case TokenType.INT:
+                val = IntegerLiteral(int(self.curr_token.literal, 0))
+                self.next_token()
+                return val
+            case t if t in [TokenType.PLUS, TokenType.MINUS, TokenType.ASTERISK, TokenType.SLASH]:
+                op = self.curr_token.literal
+                self.next_token()
+                operands: list[Expression] = []
+                operands.append(self.parse_e())
+                operands.append(self.parse_e())
+                return PrefixExpression(op, operands)
+            case _:
+                raise ParserError(f"Unexpected token in expression: {self.curr_token.type} ({self.curr_token.literal})")
 
-    def parse_identifier(self) -> Identifier:
-        """Parse identifier: some_identifier"""
-        return Identifier(self.cur_token.literal)
+    # special forms
+    def parse_if_form(self) -> If:
+        """(if E M M)"""
+        self.expect_curr(TokenType.IF)
+        cond = self.parse_e()
+        then_branch = self.parse_m()
+        else_branch = self.parse_m()
+        self.expect_peek(TokenType.RPAREN)
+        return If(cond, then_branch, else_branch)
 
-    def parse_integer_literal(self) -> IntegerLiteral:
-        """Parse integer literal: 42"""
-        return IntegerLiteral(int(self.cur_token.literal, 0))
+    def parse_let_form(self) -> Let:
+        """(let ((x M)) M)"""
+        self.expect_curr(TokenType.LET)
+        self.expect_curr(TokenType.LPAREN)
+        self.expect_curr(TokenType.LPAREN)
+        name = Identifier(self.curr_token.literal)
+        self.expect_curr(TokenType.IDENT)
+        value = self.parse_m()
+        self.expect_curr(TokenType.RPAREN)
+        self.expect_curr(TokenType.RPAREN)
+        body = self.parse_m()
+        self.expect_curr(TokenType.RPAREN)
+        return Let(name, value, body)
 
-    def parse_function_literal(self) -> FunctionLiteral:
-        """Parse function literal: fun (params) -> expr"""
-        lit = FunctionLiteral(parameters=[], body=None)
-
-        self.consume(TokenType.LPAREN)
-
-        lit.parameters = self.parse_function_parameters()
-
-        self.consume(TokenType.ARROW)
-
-        self.next_token()
-        lit.body = self.parse_expression(LOWEST)
-
-        return lit
-
-    def parse_function_parameters(self) -> list[Identifier]:
-        """Parse parameters: (x, y, ...)"""
-        identifiers: list[Identifier] = []
-
-        if self.peek_token.type == TokenType.RPAREN:
-            self.next_token()
-            return identifiers
-
-        self.next_token()
-        identifiers.append(Identifier(self.cur_token.literal))
-
-        while self.peek_token.type == TokenType.COMMA:
-            self.next_token()
-            self.next_token()
-            identifiers.append(Identifier(self.cur_token.literal))
-
-        if not self.consume(TokenType.RPAREN):
-            return []
-
-        return identifiers
+    def parse_loop_form(self) -> Loop:
+        """(loop l ((x E)*) M)"""
+        self.expect_curr(TokenType.LOOP)
+        label = self.curr_token.literal
+        self.expect_curr(TokenType.IDENT)
+        self.expect_curr(TokenType.LPAREN)
+        bindings: list[tuple[Identifier, Expression]] = []
+        while self.curr_token.type != TokenType.RPAREN:
+            self.expect_curr(TokenType.LPAREN)
+            bname = Identifier(self.curr_token.literal)
+            self.expect_curr(TokenType.IDENT)
+            bexpr = self.parse_e()
+            self.expect_curr(TokenType.RPAREN)
+            bindings.append((bname, bexpr))
+        self.expect_curr(TokenType.RPAREN)
+        body = self.parse_m()
+        self.expect_curr(TokenType.RPAREN)
+        return Loop(label, bindings, body)

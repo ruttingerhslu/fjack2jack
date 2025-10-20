@@ -1,7 +1,10 @@
 from .token import Token, TokenType
 
 keywords = {
-    "fun": TokenType.FUNCTION,
+    "λ": TokenType.LAMBDA,
+    "if": TokenType.IF,
+    "let": TokenType.LET,
+    "loop": TokenType.LOOP,
 }
 
 def lookup_ident(ident: str) -> TokenType:
@@ -63,8 +66,6 @@ class Lexer():
                 token = Token(TokenType.LPAREN, self.ch)
             case ')':
                 token = Token(TokenType.RPAREN, self.ch)
-            case ';':
-                token = Token(TokenType.SEMICOLON, self.ch)
             case '\0':
                 token = Token(TokenType.EOF, '')
             case _:
@@ -103,8 +104,10 @@ class Lexer():
         return self.input[position:self.position]
 
     def is_letter(self, ch: str) -> bool:
-        """Returns true if the provided character is a letter."""
-        return 'a' <= ch and ch <= 'z' or 'A' <= ch and ch <= 'Z' or ch == '_'
+        """Returns true if the provided character is a letter (Unicode-aware)."""
+        if ch == '_':
+            return True
+        return ch.isalpha()
 
     def __iter__(self):
         return self
