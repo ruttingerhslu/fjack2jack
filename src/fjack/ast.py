@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Literal
 
 @dataclass
 class Node:
@@ -6,37 +7,46 @@ class Node:
 
 @dataclass
 class M(Node):
+    """
+        M ::= E | (E E*) | (if E M M) |
+              (let ((x M)) M ) |
+              (loop l ((x E)*) M) |
+              (l E*)
+    """
     pass
 
 @dataclass
-class Expression(M):
+class E(M):
+    """E ::= x | (+ E E) | ..."""
     pass
 
-# E ::= x | (+ E E) | ...
 @dataclass
-class Identifier(Expression):
+class Identifier(E):
+    """x"""
     value: str
     def __str__(self):
         return self.value
 
 @dataclass
-class IntegerLiteral(Expression):
+class IntegerLiteral(E):
     value: int
     def __str__(self):
         return str(self.value)
 
 @dataclass
-class PrefixExpression(Expression):
-    operator: str
-    operands: list[Expression]
+class PrefixExpression(E):
+    """(+ E E)"""
+    operator: Literal['+', '-', '*', '/', '&', '|', '<', '>', '=']
+    operands: list[E]
     def __str__(self):
         return f"({self.operator} {self.operands[0]} {self.operands[1]})"
+
 
 @dataclass
 class Call(M):
     """(E E*)"""
-    func: Expression
-    args: list[Expression]
+    func: E
+    args: list[E]
     def __str__(self):
         args_str = " ".join(map(str, self.args))
         return f"({self.func} {args_str})"
@@ -44,7 +54,7 @@ class Call(M):
 @dataclass
 class If(M):
     """(if E M M)"""
-    condition: Expression
+    condition: E
     then_branch: M
     else_branch: M
     def __str__(self):
@@ -62,7 +72,7 @@ class BindingM(Node):
 class BindingE(Node):
     """(x E)"""
     var: Identifier
-    value: Expression
+    value: E
     def __str__(self):
         return f"({self.var} {self.value})"
 
@@ -89,7 +99,7 @@ class Loop(M):
 class LabelCall(M):
     """(l E*)"""
     label: str
-    args: list[Expression]
+    args: list[E]
     def __str__(self):
         return f"({self.label} {' '.join(map(str, self.args))})"
 

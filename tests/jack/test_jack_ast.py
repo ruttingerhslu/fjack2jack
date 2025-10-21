@@ -11,7 +11,7 @@ class TestJackAst(unittest.TestCase):
                 subroutines=[
                     SubroutineDec(
                         type="method",
-                        returnType="Fraction",
+                        returnType="void",
                         name=SubroutineName(value="foo"),
                         parameters=[
                             Parameter(
@@ -27,22 +27,20 @@ class TestJackAst(unittest.TestCase):
                                 )
                             ],
                             statements=[
-                                Statement(
-                                    value=LetStatement(
-                                        varName=VarName(value="temp"),
-                                        index=None,
-                                        expression=Expression(
-                                            left=Term(
-                                                unaryOp=None,
-                                                value=VarName(value="y"),
-                                            ),
-                                            operator="+",
-                                            right=Term(
-                                                unaryOp=None,
-                                                value=IntegerConstant(value=12),
-                                            ),
+                                LetStatement(
+                                    varName=VarName(value="temp"),
+                                    index=None,
+                                    expression=Expression(
+                                        left=Term(
+                                            unaryOp=None,
+                                            value=VarName(value="y"),
                                         ),
-                                    )
+                                        operator="+",
+                                        right=Term(
+                                            unaryOp=None,
+                                            value=IntegerConstant(value=12),
+                                        ),
+                                    ),
                                 )
                             ],
                         ),
@@ -51,5 +49,5 @@ class TestJackAst(unittest.TestCase):
             )
         ])
 
-        expected = ("class Bar { method Fraction foo(int y) { var int temp; let temp = y + 12; } }")
+        expected = ("class Bar { method void foo(int y) { var int temp; let temp = y + 12; } }")
         self.assertEqual(str(program), expected)

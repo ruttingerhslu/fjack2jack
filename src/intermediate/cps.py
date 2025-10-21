@@ -26,7 +26,7 @@ class CPS:
     def transform_f(self, m: M, c: C) -> MCps:
         """F: M x C -> M'"""
         match m:
-            case Expression():
+            case E():
                 match c:
                     case K():
                         return BindingCont(c, m)
@@ -36,9 +36,10 @@ class CPS:
                     case _:
                         pass
             case Call():
-                if isinstance(c, X) and c in self.rec_bound:
+                value = CallCps(m.func, m.args, None)
+                if isinstance(c, X) and c in self.rec_bound and isinstance(value, E):
                     return LetCps(
-                        [BindingCps(X("v"), CallCps(m.func, m.args, None))],
+                        [BindingCps(X("v"), value)],
                         CallCps(Identifier("j"), [Identifier("v")], None)
                     )
                 else:

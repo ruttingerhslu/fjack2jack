@@ -1,24 +1,26 @@
 from dataclasses import dataclass
 
 from fjack.ast import *
+from .ssa_ast import X_ssa
 
 @dataclass
-class X(Identifier):
-    """variables"""
-    pass
+class X(Identifier, E):
+    """variable"""
+    def to_ssa(self) -> X_ssa:
+        return X_ssa(self.value)
 
 @dataclass
 class BindingCps(Node):
     """(x E)"""
     var: X
-    value: "Expression | MCps"
+    value: "E"
 
 @dataclass
 class BindingCall(Node):
     """(x (E E*))"""
     var: X
-    fn: Expression
-    args: list[Expression]
+    fn: E
+    args: list[E]
 
 @dataclass
 class MCps(Node):
@@ -34,20 +36,20 @@ class MCps(Node):
 @dataclass
 class CallCps(MCps):
     """(E E* C)"""
-    fn: Expression
-    args: list[Expression]
+    fn: E
+    args: list[E]
     cont: "C | None"
 
 @dataclass
 class BindingCont(MCps):
     """(k E)"""
     cont: "K"
-    arg: Expression
+    arg: E
 
 @dataclass
 class IfCps(MCps):
     """(if E M' M')"""
-    condition: Expression
+    condition: E
     then_branch: MCps
     else_branch: MCps
     def __str__(self):
@@ -78,7 +80,7 @@ class C(Node):
 
 @dataclass
 class K(C, Identifier):
-    """labels"""
+    """variable"""
     pass
 
 @dataclass

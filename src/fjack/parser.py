@@ -98,13 +98,13 @@ class Parser:
             case _:
                 # (E E*)
                 func = self.parse_e()
-                args: list[Expression] = []
+                args: list[E] = []
                 while self.curr_token.type != TokenType.RPAREN:
                     args.append(self.parse_e())
                 self.expect_curr(TokenType.RPAREN)
                 return Call(func, args)
 
-    def parse_e(self) -> Expression:
+    def parse_e(self) -> E:
         """E ::= x | INT | (+ E E) | ... """
         match self.curr_token.type:
             case TokenType.IDENT:
@@ -118,7 +118,7 @@ class Parser:
             case t if t in [TokenType.PLUS, TokenType.MINUS, TokenType.ASTERISK, TokenType.SLASH]:
                 op = self.curr_token.literal
                 self.next_token()
-                operands: list[Expression] = []
+                operands: list[E] = []
                 operands.append(self.parse_e())
                 operands.append(self.parse_e())
                 return PrefixExpression(op, operands)
