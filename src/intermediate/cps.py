@@ -65,6 +65,8 @@ class CPS:
                     self.rec_bound.append(X(fn))
                     return LetrecCps([BindingRec(X(fn), Pjump(vars, self.transform_f(body, c)))],
                         CallCps(fn, values, None))
+            case LabelCall():
+                return CallCps(m.label, m.args, None)
             case _:
                 pass
         raise TransformError(f"Unhandled pattern in transform_f: {m}, {c}")

@@ -22,7 +22,6 @@ class E(M):
 
 @dataclass
 class Identifier(E):
-    """x"""
     value: str
     def __str__(self):
         return self.value
@@ -98,7 +97,7 @@ class Loop(M):
 @dataclass
 class LabelCall(M):
     """(l E*)"""
-    label: str
+    label: Identifier
     args: list[E]
     def __str__(self):
         return f"({self.label} {' '.join(map(str, self.args))})"

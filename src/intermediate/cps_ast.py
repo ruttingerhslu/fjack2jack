@@ -1,26 +1,16 @@
 from dataclasses import dataclass
 
 from fjack.ast import *
-from .ssa_ast import X_ssa
 
 @dataclass
 class X(Identifier, E):
     """variable"""
-    def to_ssa(self) -> X_ssa:
-        return X_ssa(self.value)
 
 @dataclass
 class BindingCps(Node):
     """(x E)"""
     var: X
     value: "E"
-
-@dataclass
-class BindingCall(Node):
-    """(x (E E*))"""
-    var: X
-    fn: E
-    args: list[E]
 
 @dataclass
 class MCps(Node):

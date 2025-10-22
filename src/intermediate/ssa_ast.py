@@ -5,7 +5,6 @@ from jack.ast import *
 @dataclass
 class Label(Identifier):
     """label"""
-    value: str
 
 @dataclass
 class E_ssa(Expression):
