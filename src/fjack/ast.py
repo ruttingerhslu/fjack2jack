@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Literal
 
 @dataclass
 class Node:
@@ -35,7 +34,8 @@ class IntegerLiteral(E):
 @dataclass
 class PrefixExpression(E):
     """(+ E E)"""
-    operator: Literal['+', '-', '*', '/', '&', '|', '<', '>', '=']
+    operator: str
+    # operator: Literal['+', '-', '*', '/', '&', '|', '<', '>', '=']
     operands: list[E]
     def __str__(self):
         return f"({self.operator} {self.operands[0]} {self.operands[1]})"

@@ -86,4 +86,4 @@ class P(Node):
     """P ::= proc(x*) {B L*}"""
     args: list[X_ssa]
     body: Block
-    label_definitions: list[L]
+    label_blocks: list[L]

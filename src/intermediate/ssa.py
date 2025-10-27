@@ -20,6 +20,7 @@ class SSA:
         where x ∈ variables
               l ∈ labels
     """
+    label_blocks: dict[str, list[E_ssa]] = {}
 
     def __init__(self):
         pass
@@ -58,7 +59,10 @@ class SSA:
                     case K():
                         return ReturnCall(ProcedureCall(e_to_ssa(m.fn), list(map(e_to_ssa, m.args))))
                     case None:
-                        return Goto(Label(str(e_to_ssa(m.fn))))
+                        # G([(j E_0,i E_1,i ...)]) = goto j_i;
+                        j = Label(str(e_to_ssa(m.fn)))
+                        if j in self.label_blocks:
+                            return Goto(Label(j.value))
                     case _:
                         pass
             case BindingCont():
@@ -73,17 +77,22 @@ class SSA:
 
     def transform_g_proc(self, p: PCps) -> P:
         if isinstance(p, Pproc):
-            j = p.args[0]
-            args = [x_to_ssa(arg) for arg in p.args[1:]] + [x_to_ssa(p.k)]
             return P(
-                args,
+                [x_to_ssa(arg) for arg in p.args],
                 self.transform_g(p.body),
-                [self.transform_g_jump(j, Pjump(p.args[1:], p.body))]
+                [self.transform_g_jump(Pjump(p.args, p.body))]
             )
         raise TransformError(f"Unhandled pattern in transform_g_proc: {p}")
 
-    def transform_g_jump(self, j: X, pj: Pjump) -> L:
-        return L(Label(j.value), [I(x_to_ssa(pj.args[0]), list(map(e_to_ssa, pj.args[1:])))], self.transform_g(pj.body))
+    def transform_g_jump(self, pj: Pjump) -> L:
+        """
+            G_jump([j, (λ_jump (x ...) M')]) = j : x <- ɸ(E_0,0, E_0,1); ... G([M'])
+
+            'Each λ_jump is instead lifted up to become a labeled block in the SSA procedure.'
+        """
+        j = f'j{len(self.label_blocks) + 1}'
+        self.label_blocks[j] = list(map(e_to_ssa, pj.args[1:]))
+        return L(Label(j), [I(x_to_ssa(pj.args[0]), list(map(e_to_ssa, pj.args[1:])))], self.transform_g(pj.body))
 
 def e_to_ssa(e: fjack.E) -> E_ssa:
     match e:

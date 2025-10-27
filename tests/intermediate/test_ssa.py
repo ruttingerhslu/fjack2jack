@@ -5,6 +5,9 @@ from intermediate.cps_ast import *
 
 class TestCps(unittest.TestCase):
     def test_transform(self):
+        """
+            (λ_proc (x y k) (k (+ x y)))
+        """
         input = Pproc(
             args=[X(value='x'), X(value='y')],
             k=K(value='k'),
@@ -25,7 +28,7 @@ class TestCps(unittest.TestCase):
                             operator=None,
                             right=None)),
                     operator='+', right=None)),
-            label_definitions=[
+            label_blocks=[
                 L(label=Label(value='x'), phi_funcs=[I(var=X_ssa(value='y'), args=[])],
                 body=ReturnValue(
                     value=E_ssa(left=Term(unaryOp=None, value=E_ssa(left=Term(unaryOp=None, value=VarName(value='x')),

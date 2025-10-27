@@ -50,7 +50,8 @@ class Term(Node):
 class Expression(Node):
     """Term (op Term)*"""
     left: Term
-    operator: Literal['+', '-', '*', '/', '&', '|', '<', '>', '='] | None
+    operator: str | None
+    # operator: Literal['+', '-', '*', '/', '&', '|', '<', '>', '='] | None
     right: Term | None
 
     def __str__(self):
