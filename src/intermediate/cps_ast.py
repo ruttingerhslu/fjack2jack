@@ -16,6 +16,7 @@ class BindingCps(Node):
 class MCps(Node):
     """
         M' ::= (E E* C) |
+            (E E*)
             (k E) |
             (if E M' M') |
             (let ((x E)) M') |
@@ -29,6 +30,12 @@ class CallCps(MCps):
     fn: E
     args: list[E]
     cont: "C | None"
+
+@dataclass
+class JumpCps(MCps):
+    """(E E*)"""
+    fn: E
+    args: list[E]
 
 @dataclass
 class BindingCont(MCps):

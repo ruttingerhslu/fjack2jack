@@ -8,6 +8,7 @@ class TransformError(Exception):
 class CPS:
     """
         M' ::=  (E E* C) |
+                (E E*) |
                 (k E) |
                 (if E M' M') |
                 (let ((x E)) M') |
@@ -40,7 +41,7 @@ class CPS:
                 if isinstance(c, X) and c in self.rec_bound and isinstance(value, E):
                     return LetCps(
                         [BindingCps(X("v"), value)],
-                        CallCps(Identifier("j"), [Identifier("v")], None)
+                        JumpCps(Identifier("j"), [Identifier("v")])
                     )
                 else:
                     return CallCps(m.func, m.args, c)
@@ -64,9 +65,9 @@ class CPS:
                     values = [b.value for b in args]
                     self.rec_bound.append(X(fn))
                     return LetrecCps([BindingRec(X(fn), Pjump(vars, self.transform_f(body, c)))],
-                        CallCps(fn, values, None))
+                        JumpCps(fn, values))
             case LabelCall():
-                return CallCps(m.label, m.args, None)
+                return JumpCps(m.label, m.args)
             case _:
                 pass
         raise TransformError(f"Unhandled pattern in transform_f: {m}, {c}")

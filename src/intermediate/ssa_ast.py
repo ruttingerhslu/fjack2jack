@@ -54,8 +54,12 @@ class AssignmentCallBlock(Block):
 
 @dataclass
 class Goto(Block):
-    """goto l_i;"""
+    """
+        goto l_i;
+        i is the index of the phi function variable, which is chosen (from the jump call)
+    """
     label: Label
+    index: int
 
 @dataclass
 class ReturnValue(Block):
@@ -78,8 +82,8 @@ class If(Block):
 class L(Node):
     """l : I* B"""
     label: Label
-    phi_funcs: list[I]
-    body: Block
+    phis: list[I]
+    body: Block | None
 
 @dataclass
 class P(Node):

@@ -21,3 +21,21 @@ class TestCps(unittest.TestCase):
             ))
 
         self.assertEqual(transformed, expected)
+
+    def test_integer(self):
+        input = Program(
+            parameters=[Identifier("x")],
+            body=PrefixExpression(operator="+", operands=[Identifier("x"), IntegerLiteral(1)])
+        )
+        cps = CPS()
+        transformed = cps.transform_v(input)
+
+        expected = Pproc(
+            args=[X(value='x')],
+            k=K(value='k'),
+            body=BindingCont(
+                cont=K(value='k'),
+                arg=PrefixExpression(operator='+', operands=[Identifier(value='x'), IntegerLiteral(value=1)])
+            ))
+
+        self.assertEqual(transformed, expected)
