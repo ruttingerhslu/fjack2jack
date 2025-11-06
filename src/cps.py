@@ -18,10 +18,13 @@ def f(m, c):
         #     (letrec ((x (lambda_jump (x) M'))) (if E F([M_1, x]) F([M_2, x])))
         elif c[0] == 'lambda_cont':
             _, [x], cont_m = c
+            # new continuation variable
+            var = 'j'
+            labels.add(var)
             rec_bound.add(x)
             return ['letrec',
-                    [[x, ['lambda_jump', [x], cont_m]]],
-                    ['if', cond, f(then_m, x), f(else_m, x)]
+                    [[var, ['lambda_jump', [x], cont_m]]],
+                    ['if', cond, f(then_m, var), f(else_m, var)]
                 ]
 
     # F([(loop l ((x E_initial) ...)M), C]) =
@@ -44,10 +47,10 @@ def f(m, c):
 
     # F([(l E ...), C]) = (l E ...)
     elif isinstance(m[0], str) and m[0] in labels:
-        return [m[0]] + [m[1:]]
+        return [m[0]] + m[1:]
 
     # F([(E...), C]) = (let ((v (E ...))) (j v)) if C = x and x is bound by letrec
-    elif isinstance(c, str) and c in rec_bound:
+    elif isinstance(m, list) and isinstance(c, str) and c in rec_bound:
         return ['let', [['v', m]], [c, 'v']]
 
     # F([E, k]) = (k E)

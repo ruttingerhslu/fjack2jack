@@ -1,5 +1,24 @@
 phi_assignments: dict[str, dict[str, list[str]]] = {}
 
+def collect_jump_blocks(expr):
+    """Return a list of (label, lambda_jump) in a body, recursively."""
+    blocks = []
+    if not isinstance(expr, list) or not expr:
+        return blocks
+
+    if expr[0] == 'letrec':
+        _, bindings, body = expr
+        for label, lam in bindings:
+            if isinstance(lam, list) and lam[0] == 'lambda_jump':
+                blocks.append((label, lam))
+            # recurse into the lambda_jump itself in case of nested letrec
+            blocks.extend(collect_jump_blocks(lam))
+        blocks.extend(collect_jump_blocks(body))
+    else:
+        for e in expr[1:]:
+            blocks.extend(collect_jump_blocks(e))
+    return blocks
+
 def collect_phi_assignments(expr):
     """Collect all jump labels and their bound variables."""
     if not isinstance(expr, list) or not expr:
@@ -8,9 +27,10 @@ def collect_phi_assignments(expr):
     if expr[0] == 'letrec':
         _, bindings, body = expr
         for name, lam in bindings:
-            if isinstance(lam, list) and lam[0] == 'lambda_jump':
+            if isinstance(lam, list) and lam[0] == 'lambda_jump' and name not in phi_assignments:
                 _, params, _ = lam
                 phi_assignments[name] = {x: [] for x in params}
+            collect_phi_assignments(lam)
         collect_phi_assignments(body)
 
     for e in expr[1:]:
@@ -35,8 +55,8 @@ def g(m):
         label = m[0]
         args = m[1:]
         for var, val in zip(phi_assignments[label].keys(), args):
-            phi_assignments[label][var].append(val)
-        l_index = len(phi_assignments[label]['x'])
+            phi_assignments[label][var].append(str(exp(val)))
+        l_index = len(next(iter(phi_assignments[label])))
         return ['goto', f'{label}_{l_index};']
     # G([(if E M_1' M_2')]) = if E then G([M_1']) else G([M_2'])
     elif m[0] == 'if':
@@ -70,17 +90,15 @@ def g_proc(p):
     m = g(body)
 
     jump_blocks = []
-    if isinstance(body, list) and body[0] == 'letrec':
-        _, bindings, _ = body
-        for (label, lam) in bindings:
-            if lam[0] == 'lambda_jump':
-                jump_blocks.append(g_jump(label, lam))
+
+    for label, lam in collect_jump_blocks(body):
+        jump_blocks.append(g_jump(label, lam))
 
     return ['proc', params, m, *jump_blocks]
 
 def g_jump(j, m):
     """G_jump: (λ_jump (x...) M') → j: x <- φ(...); ...; G(M')"""
-    if not (isinstance(m, list) and m and m[0] == 'lambda_jump'):
+    if not (isinstance(m, list) and m[0] == 'lambda_jump'):
         return m
     _, [*_], body = m
     return [j, ':', phi_assignments[j], g(body)]

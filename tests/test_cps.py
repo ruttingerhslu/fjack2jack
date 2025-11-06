@@ -39,3 +39,11 @@ class TestCPS(unittest.TestCase):
             ['l', 2]]]
 
         self.assertEqual(cps_ast, expected)
+
+    def test_lambda_cont(self):
+        input = parse("(lambda (f limit) (loop l ((i 0) (c 0)) (if (= i limit) c (let ((x (f i))) (let ((c' (if (= x 0) (+ c 1) c))) (l (+ i 1) c'))))))")
+        cps_ast = v(input)
+
+        expected = ['lambda_proc', ['f', 'limit', 'k'], ['letrec', [['l', ['lambda_jump', ['i', 'c'], ['if', ['=', 'i', 'limit'], ['k', 'c'], ['f', 'i', ['lambda_cont', ['x'], ['letrec', [['j', ['lambda_jump', ["c'"], ['l', ['+', 'i', 1], "c'"]]]], ['if', ['=', 'x', 0], ['j', ['+', 'c', 1]], ['j', 'c']]]]]]]]], ['l', 0, 0]]]
+
+        self.assertEqual(cps_ast, expected)
