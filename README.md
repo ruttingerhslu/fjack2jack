@@ -1,3 +1,5 @@
+! NOTE: This version is no longer used !
+
 # lispy2jack
 A source-to-source compiler from Lispy to Jack.
 
