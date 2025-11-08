@@ -33,16 +33,27 @@ def normalize_name_star(exprs, k):
             k([t] + t_star)))
 
 def normalize(m, k):
-    # λ abstractions
+    # lambda abstractions
     if isinstance(m, list) and len(m) >= 3 and m[0] == 'lambda':
         params, body = m[1], m[2]
         return k(['lambda', params, normalize_term(body)])
 
     # let bindings
     elif isinstance(m, list) and len(m) == 3 and m[0] == 'let' and isinstance(m[1], list):
-        x, m1 = m[1]
+        bindings = m[1]
         m2 = m[2]
-        return normalize(m1, lambda n1: ['let', [x, n1], normalize(m2, k)])
+
+        def process_bindings(bindings, k):
+            if not bindings:
+                return k([])
+            (x, m1), *rest = bindings
+            return normalize(m1, lambda n1:
+                process_bindings(rest, lambda ns: k([[x, n1]] + ns))
+            )
+
+        return process_bindings(bindings, lambda normalized_bindings:
+            ['let', normalized_bindings, normalize(m2, k)]
+        )
 
     # if expression
     elif isinstance(m, list) and len(m) == 4 and m[0] == 'if':

@@ -5,37 +5,56 @@ gensym_counter = itertools.count()
 def gensym(prefix="f"):
     return f"{prefix}{next(gensym_counter)}"
 
-def anf_to_jack(anf):
-    # binary operation
+def anf_to_jack(anf, vars_declared=None):
+    if vars_declared is None:
+        vars_declared = set()
+
+    # Binary operations
     if isinstance(anf, list) and anf[0] in ['+', '-', '/', '*', '=']:
         op, e1, e2 = anf
-        return f"{anf_to_jack(e1)} {op} {anf_to_jack(e2)}"
+        return f"({anf_to_jack(e1)} {op} {anf_to_jack(e2)})"
 
-    # atomic values
-    if isinstance(anf, (int, float, bool, str)) and not isinstance(anf, list):
+    # Atomic values
+    if isinstance(anf, (int, float, bool)) or isinstance(anf, str):
         return str(anf)
 
-    # let expression: ['let', ['x', e1], e2]
+    # Let binding: ['let', ['x', e1], e2]
     if isinstance(anf, list) and anf[0] == "let":
-        _, [x, e1], e2 = anf
-        return f"var {x} = {anf_to_jack(e1)};\n{anf_to_jack(e2)}"
+        _, bindings, body = anf
 
-    # if expression: ['if', cond, then, else]
+        code = ""
+        for x, e in bindings:
+            if x not in vars_declared:
+                code += f"var int {x};\n"
+                vars_declared.add(x)
+            code += f"{x} = {anf_to_jack(e, vars_declared)};\n"
+
+        code += anf_to_jack(body, vars_declared)
+        return code
+
+    # If expression
     elif isinstance(anf, list) and anf[0] == "if":
         _, cond, t, e = anf
-        return f"if ({anf_to_jack(cond)}) {{ {anf_to_jack(t)} }} else {{ {anf_to_jack(e)} }}"
+        return (
+            f"if ({anf_to_jack(cond, vars_declared)}) {{\n"
+            f"{anf_to_jack(t, vars_declared)}\n"
+            f"}} else {{\n"
+            f"{anf_to_jack(e, vars_declared)}\n}}"
+        )
 
-    # lambda abstraction: ['lambda', ['x'], body]
+    # Lambda abstraction
     elif isinstance(anf, list) and anf[0] == "lambda":
         _, params, body = anf
-        param_list = ", ".join(params)
-        return f"function void {gensym()} ({param_list}) {{ return {anf_to_jack(body)}; }}"
+        fname = gensym("f")
+        params_str = ", ".join(f"int {p}" for p in params)
+        body_code = anf_to_jack(body, set())
+        return f"function int {fname}({params_str}) {{\n{body_code}\n}}"
 
-    # function or operator application: ['+', 't0', 't1'], ['f', 'x'], etc.
+    # Function application
     elif isinstance(anf, list):
         fn, *args = anf
-        args_str = ", ".join(anf_to_jack(a) for a in args)
-        return f"{anf_to_jack(fn)}({args_str})"
+        args_str = ", ".join(anf_to_jack(a, vars_declared) for a in args)
+        return f"{fn}({args_str})"
 
     else:
         raise ValueError(f"Unrecognized ANF form: {anf}")

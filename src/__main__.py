@@ -1,4 +1,4 @@
-from .anf import normalize_term, reset_gensym
+from .anf import normalize_term
 from .jack import anf_to_jack
 from .fjack import *
 
