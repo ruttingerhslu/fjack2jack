@@ -9,16 +9,16 @@ def anf_to_jack(anf, vars_declared=None):
     if vars_declared is None:
         vars_declared = set()
 
-    # Binary operations
+    # binary operations
     if isinstance(anf, list) and anf[0] in ['+', '-', '/', '*', '=']:
         op, e1, e2 = anf
         return f"({anf_to_jack(e1)} {op} {anf_to_jack(e2)})"
 
-    # Atomic values
+    # atomic values
     if isinstance(anf, (int, float, bool)) or isinstance(anf, str):
         return str(anf)
 
-    # Let binding: ['let', ['x', e1], e2]
+    # let binding
     if isinstance(anf, list) and anf[0] == "let":
         _, bindings, body = anf
 
@@ -32,7 +32,7 @@ def anf_to_jack(anf, vars_declared=None):
         code += anf_to_jack(body, vars_declared)
         return code
 
-    # If expression
+    # if expression
     elif isinstance(anf, list) and anf[0] == "if":
         _, cond, t, e = anf
         return (
@@ -42,7 +42,7 @@ def anf_to_jack(anf, vars_declared=None):
             f"{anf_to_jack(e, vars_declared)}\n}}"
         )
 
-    # Lambda abstraction
+    # lambda abstraction
     elif isinstance(anf, list) and anf[0] == "lambda":
         _, params, body = anf
         fname = gensym("f")
@@ -50,7 +50,7 @@ def anf_to_jack(anf, vars_declared=None):
         body_code = anf_to_jack(body, set())
         return f"function int {fname}({params_str}) {{\n{body_code}\n}}"
 
-    # Function application
+    # function application
     elif isinstance(anf, list):
         fn, *args = anf
         args_str = ", ".join(anf_to_jack(a, vars_declared) for a in args)
