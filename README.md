@@ -41,20 +41,19 @@ And finally transform the A-Normalization to Jack:
 
 Variables have to be declared at the top of the function they're used in.
 
-Lambdas are not yet supported, due to the nature of Jack not being able to call them.
-They could be implemented, however by defining them as separate functions (similar to declaring variables at the top of the function; maybe using environments (?)), one could call them with their respective arguments. Say we have the following Scheme code:
+Lambdas are supported by defining them as separate functions (similar to declaring variables at the top of the function), one can call them with their respective arguments. Say we have the following Scheme code:
 ```((lambda (x y) (+ x y)) 1 2)```
-Could be translated to Jack by taking the lambda definition, defining it as a function with a name, returning that name as a continuation and calling it with arguments: 1, 2
+Is translated to Jack by taking the lambda definition, defining it as a function with a name, returning that name as a continuation and calling it with arguments: 1, 2
 ```
-function void main() {
-  f0(1, 2)
-}
-...
 function int f0(int v0, int v1) {
   return v0 + v1;
 }
 ...
+function void main() {
+  f0(1, 2)
+}
 ```
+The consequence of this is of course, that lambda expressions without arguments are not allowed, since the arguments are not known.
 
 ## Code examples
 lambda with 2 args:
