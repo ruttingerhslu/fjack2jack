@@ -1,6 +1,6 @@
 from .anf import normalize_term
 from .passes import *
-from .new_jack import generate_jack
+from .new_jack import JackGenerator
 from .fjack import *
 
 def main(prompt: str = "fjack.py> "):
@@ -11,12 +11,16 @@ def main(prompt: str = "fjack.py> "):
 
         passes = [
             normalize_term,
-            optimize_direct_call,
+            flatten_nested_lambdas,
             remove_anonymous_lambda,
+            optimize_direct_call,
         ]
-        ast = run_pipeline(ast, passes, True)
+        ast = run_pipeline(ast, passes, False)
 
-        jack_code = generate_jack(ast, class_name="Main")
+        ast, lifted = lambda_lift(ast)
+
+        gen = JackGenerator()
+        jack_code = gen.generate_jack(ast, lifted)
         print(jack_code)
 
 def run_pipeline(ast, passes, printFlag):

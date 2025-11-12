@@ -1,117 +1,137 @@
 from collections import defaultdict
 import itertools
 
-lambda_functions = []
+class JackGenerator:
+    def __init__(self):
+        self.counters = defaultdict(lambda: itertools.count())
+        self.lifted = {}
+        self.function_aliases = {}
 
-counters = defaultdict(lambda: itertools.count())
+    def gensym(self, prefix="anon"):
+        return f"{prefix}{next(self.counters[prefix])}"
 
-def gensym(prefix="anon"):
-    return f"{prefix}{next(counters[prefix])}"
+    def indent(self, s, level=1):
+        pad = "  " * level
+        return "\n".join(pad + line if line.strip() else line for line in s.splitlines())
 
-def indent(s, level=1):
-    pad = "  " * level
-    return "\n".join(pad + line if line.strip() else line for line in s.splitlines())
+    def lift_lambda(self, ast):
+        # ast = ['lambda', params, body]
+        fn_name = self.gensym("fun")
+        params, body = ast[1], ast[2]
+        self.lifted[fn_name] = fn_name
+        self.function_aliases[fn_name] = fn_name
+        return fn_name
 
-def collect_vars(ast, vars_set=None):
-    """Recursively set all let-bound variable names."""
-    if vars_set is None:
-        vars_set = set()
-    if isinstance(ast, list):
+    def collect_vars(self, ast, vars_set=None):
+        if vars_set is None:
+            vars_set = set()
+        if not isinstance(ast, list):
+            return vars_set
         op = ast[0]
         if op == 'let':
             bindings, body = ast[1], ast[2]
             for name, val in bindings:
                 vars_set.add(name)
-                collect_vars(val, vars_set)
-            collect_vars(body, vars_set)
+                self.collect_vars(val, vars_set)
+            self.collect_vars(body, vars_set)
         elif op == 'if':
-            collect_vars(ast[1], vars_set)
-            collect_vars(ast[2], vars_set)
-            collect_vars(ast[3], vars_set)
+            for branch in ast[1:4]:
+                self.collect_vars(branch, vars_set)
         elif op == 'lambda':
-            collect_vars(ast[2], vars_set)
+            params, body = ast[1], ast[2]
+            vars_set.update(params)
+            self.collect_vars(body, vars_set)
         else:
             for e in ast[1:]:
-                collect_vars(e, vars_set)
-    return vars_set
+                self.collect_vars(e, vars_set)
+        return vars_set
 
-def generate_expr(ast):
-    """Generate Jack expressions"""
-    if isinstance(ast, list):
-        if len(ast) == 0:
-            return ""
-        op = ast[0]
+    def generate_expr(self, ast):
+        if isinstance(ast, list):
+            if len(ast) == 0:
+                return ""
+            op = ast[0]
 
-        # if expression
-        if op == 'if':
-            cond = generate_expr(ast[1])
-            then_branch = generate_block(ast[2])
-            else_branch = generate_block(ast[3])
-            return f"if ({cond}) {{\n{indent(then_branch)}\n}} else {{\n{indent(else_branch)}\n}}"
+            if op == 'if':
+                cond = self.generate_expr(ast[1])
+                then_branch = self.generate_block(ast[2])
+                else_branch = self.generate_block(ast[3])
+                return f"if ({cond}) {{\n{self.indent(then_branch)}\n}} else {{\n{self.indent(else_branch)}\n}}"
 
-        # let expression
-        elif op == 'let':
-            bindings, body = ast[1], ast[2]
-            code = ""
-            for name, value in bindings:
-                code += f"let {name} = {generate_expr(value)};\n"
-            code += generate_expr(body)
-            return code
+            elif op == 'let':
+                bindings, body = ast[1], ast[2]
+                code_lines = []
+                for name, value in bindings:
+                    if isinstance(value, list) and value[0] == 'lambda':
+                        # lift lambads
+                        fn_name, fn_code = self.lift_lambda(value)
+                        self.function_aliases[name] = fn_name
+                    elif isinstance(value, list) and value[0] == 'let':
+                        inner_bindings, inner_body = value[1], value[2]
+                        for inner_name, inner_val in inner_bindings:
+                            inner_code = self.generate_expr(['let', [[inner_name, inner_val]], []])
+                            code_lines.append(inner_code)
+                        final_expr = self.generate_expr(inner_body)
+                        code_lines.append(f"let {name} = {final_expr};")
+                    else:
+                        val_code = self.generate_expr(value)
+                        if val_code in self.function_aliases:
+                            val_code = self.function_aliases[val_code]
+                        code_lines.append(f"let {name} = {val_code};")
+                code_lines.append(self.generate_expr(body))
+                return "\n".join([c for c in code_lines if c.strip()])
 
-        # lambda
-        elif op == 'lambda':
-            params = ", ".join(ast[1])
-            body_code = generate_block(ast[2])
-            fname = gensym("lambda")
-            # store the function for top-level generation
-            lambda_functions.append(f"function int {fname}({params}) {{\n{indent(body_code)}\n}}")
-            return fname  # return function name so calls can use it
+            elif op in ['+', '-', '*', '/', '>', '<', '=', 'and', 'or']:
+                left = self.generate_expr(ast[1])
+                right = self.generate_expr(ast[2])
+                return f"({left} {op} {right})"
 
-        # binary operation
-        elif op in ['+', '-', '*', '/', '>', '<', '=', 'and', 'or']:
-            left = generate_expr(ast[1])
-            right = generate_expr(ast[2])
-            return f"({left} {op} {right})"
+            elif op == "print":
+                return f"do Output.printInt({self.generate_expr(ast[1])});"
 
-        # quote
-        elif op == "print":
-            return f"do Output.printInt({generate_expr(ast[1])})"
-
-        # function call
+            else:
+                fn_name = op
+                if fn_name in self.function_aliases:
+                    fn_name = self.function_aliases[fn_name]
+                args = ", ".join(self.generate_expr(a) for a in ast[1:])
+                return f"Main.{fn_name}({args})"
         else:
-            args = ", ".join(generate_expr(a) for a in ast[1:])
-            return f"{op}({args})"
-    else:
-        # variable or constant
-        return str(ast)
+            if ast in self.function_aliases:
+                return self.function_aliases[ast]
+            return str(ast)
 
-def generate_block(expr):
-    """Ensure block structure for nested expressions."""
-    code = generate_expr(expr)
-    if not code.strip().endswith(";"):
-        code += ";"
-    print(code)
-    if not (code.strip().startswith("let") or code.strip().startswith("do")):
-        code = "return " + code
-    return code
+    def generate_block(self, expr):
+        code = self.generate_expr(expr)
+        if not code.strip().endswith(";"):
+            code += ";"
+        if not (code.strip().startswith("let") or code.strip().startswith("do")):
+            code = "return " + code
+        return code
 
-def generate_function(name, params, body):
-    """Generate a top-level Jack function."""
-    local_vars = collect_vars(body)
-    body_code = generate_block(body)
-    var_decls = "\n".join(f"var int {v};" for v in local_vars)
-    return f"function int {name}({', '.join(params)}) {{\n{indent(var_decls)}\n{indent(body_code)}\n}}"
+    def generate_lifted_function(self, fn):
+        _, orig_name, params, body = fn
+        body_code = self.generate_block(body)
+        name = self.lifted[orig_name]
+        local_vars = self.collect_vars(body)
+        var_decls = "\n".join(f"var int {v};" for v in local_vars if v not in self.function_aliases)
+        return f"function int {name}({', '.join(f'int {p}' for p in params)}) {{\n{self.indent(var_decls)}\n{self.indent(body_code)}\n}}"
 
-def generate_jack(ast, class_name="Main"):
-    """Generate a complete Jack class from AST"""
-    global lambda_functions
-    lambda_functions = []
+    def generate_main(self, ast):
+        code = self.generate_expr(ast)
+        local_vars = self.collect_vars(ast)
+        var_decls = "\n".join(f"var int {v};" for v in local_vars if v not in self.function_aliases)
+        return f"function void main() {{\n{self.indent(var_decls)}\n{self.indent(code)}\n  return;\n}}"
 
-    main_vars = collect_vars(ast)
-    code = generate_expr(ast)
-    var_decls = "\n".join(f"var int {v};" for v in main_vars)
-    main_func = f"function void main () {{\n{indent(var_decls)}\n{indent(code)}\n  return;\n}}"
+    def generate_jack(self, ast, lifted_funcs=None, class_name="Main"):
+        if lifted_funcs is None:
+            lifted_funcs = []
 
-    class_body = "\n\n".join(lambda_functions + [main_func])
+        self.lifted = {fn[1]: fn[1] for fn in lifted_funcs}
+        self.function_aliases = {}
 
-    return f"class {class_name} {{\n{indent(class_body)}\n}}"
+        lifted_code = [self.generate_lifted_function(fn) for fn in lifted_funcs]
+
+        main_code = self.generate_main(ast)
+
+        class_body = "\n\n".join(lifted_code + [main_code])
+        return f"class {class_name} {{\n{self.indent(class_body)}\n}}"
