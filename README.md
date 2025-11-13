@@ -58,6 +58,8 @@ Later on, when we see the binding square f0, we know that f0 is a function, and 
 
 In Jack, Variables have to be declared at the top of the function they're used in.
 
+One weakness that comes with this transpiler is that closures are not supported, Jack doesn't inherently support binding a variable to a function, thus implementing closures is not trivial.
+
 ## Code examples
 lambda with 2 args:
 ```
