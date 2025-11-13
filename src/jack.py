@@ -1,156 +1,102 @@
+from collections import defaultdict
 import itertools
 
-gensym_counter = itertools.count()
+from .env import Env
 
-def gensym(prefix="f"):
-    return f"{prefix}{next(gensym_counter)}"
+class JackGenerator:
+    def __init__(self):
+        self.counters = defaultdict(lambda: itertools.count())
+        self.lifted = {}
 
-class ANFtoJack:
-    def anf_to_jack(self, anf, declared_vars=None, target_var=None, declared_funcs=None):
-        if declared_vars is None:
-            declared_vars = set()
-        if declared_funcs is None:
-            declared_funcs = []
+    def gensym(self, prefix="anon"):
+        return f"{prefix}{next(self.counters[prefix])}"
 
-        code_lines = []
-        local_vars = set()
+    def indent(self, s, level=1):
+        pad = "  " * level
+        return "\n".join(pad + line if line.strip() else line for line in s.splitlines())
 
-        # binary op
-        if isinstance(anf, list) and anf[0] in ['+', '-', '*', '/', '=', '<', '>']:
-            expr = self._expr_to_str(anf)
-            if target_var:
-                code_lines.append(f"let {target_var} = {expr};")
-            return local_vars, "\n".join(code_lines) if code_lines else expr
+    def generate_expr(self, ast, env):
+        if isinstance(ast, list):
+            if not ast:
+                return ""
 
-        # lambda handling
-        if isinstance(anf, list) and anf[0] == 'lambda':
-            _, params, body = anf
+            op = ast[0]
 
-            func_name = gensym("lambda")
-            declared_funcs.append((func_name, params, body))
+            if op == "if":
+                cond = self.generate_expr(ast[1], env)
+                then_branch = self.generate_block(ast[2], env)
+                else_branch = self.generate_block(ast[3], env)
+                return (
+                    f"if ({cond}) {{\n{self.indent(then_branch)}\n}} "
+                    f"else {{\n{self.indent(else_branch)}\n}}"
+                )
 
-            if target_var:
-                code_lines.append(f"let {target_var} = Main.{func_name};")
-                return local_vars, "\n".join(code_lines)
-            return local_vars, func_name
+            elif op == "let":
+                bindings, body = ast[1], ast[2]
+                new_env = Env(env)
+                code_lines = []
+                for name, val in bindings:
+                    if isinstance(val, list) and val and val[0] == "let":
+                        inner_code = self.generate_expr(val, new_env)
+                        inner_lines = inner_code.splitlines()
+                        *inner_assignments, final_expr = inner_lines
+                        code_lines.extend(inner_assignments)
+                        code_lines.append(f"let {name} = {final_expr.replace('return ', '').rstrip(';')};")
+                    else:
+                        rhs = self.generate_expr(val, env)
+                        code_lines.append(f"let {name} = {rhs};")
+                    new_env.define_var(name)
+                code_lines.append(self.generate_expr(body, new_env))
+                return "\n".join(code_lines)
 
-        # let
-        if isinstance(anf, list) and anf[0] == 'let':
-            _, bindings, body = anf
-            if len(bindings) != 1:
-                raise ValueError("ANF let can only have one binding")
-            x, e = bindings[0]
+            elif op in ["+", "-", "*", "/", ">", "<", "=", "and", "or"]:
+                left = self.generate_expr(ast[1], env)
+                right = self.generate_expr(ast[2], env)
+                return f"({left} {op} {right})"
 
-            # bind lambda to variable
-            if isinstance(e, list) and e[0] == 'lambda':
-                _, params, lam_body = e
-                declared_funcs.append((x, params, lam_body))
+            elif op == "print":
+                return f"do Output.printInt({self.generate_expr(ast[1], env)});"
+
             else:
-                e_vars, e_code = self.anf_to_jack(e, declared_vars, target_var=None, declared_funcs=declared_funcs)
-                local_vars.update(e_vars)
+                fn_binding = env.lookup_func(op)
+                fn_name = fn_binding if fn_binding else op
+                args = ", ".join(self.generate_expr(a, env) for a in ast[1:])
+                return f"Main.{fn_name}({args})"
+        else:
+            return str(ast)
 
-                if x not in declared_vars:
-                    local_vars.add(x)
-                    declared_vars.add(x)
+    def generate_block(self, ast, env):
+        code = self.generate_expr(ast, env)
+        code = code.strip()
+        if not code.endswith(";"):
+            code = "return " + code + ";"
+        return code
 
-                if isinstance(e_code, str) and not e_code.startswith("let "):
-                    code_lines.append(f"let {x} = {e_code};")
-                else:
-                    code_lines.append(e_code)
-
-            body_vars, body_code = self.anf_to_jack(body, declared_vars, target_var, declared_funcs)
-            local_vars.update(body_vars)
-            code_lines.append(body_code)
-
-            return local_vars, "\n".join(code_lines)
-
-        # if
-        if isinstance(anf, list) and anf[0] == 'if':
-            _, cond, t_branch, e_branch = anf
-            t_vars, t_code = self.anf_to_jack(t_branch, declared_vars.copy(), target_var)
-            e_vars, e_code = self.anf_to_jack(e_branch, declared_vars.copy(), target_var)
-            local_vars.update(t_vars)
-            local_vars.update(e_vars)
-            return local_vars, f"if ({self._expr_to_str(cond)}) {{\n{t_code}\n}} else {{\n{e_code}\n}}"
-
-        if isinstance(anf, (int, float, str)):
-            if target_var:
-                code_lines.append(f"let {target_var} = {anf};")
-                return local_vars, "\n".join(code_lines)
-            return local_vars, str(anf)
-
-        # function application
-        if isinstance(anf, list) and len(anf) >= 1:
-            fn = anf[0]
-            args = anf[1:]
-
-            # fn is a lambda expression
-            if isinstance(fn, list) and fn[0] == 'lambda':
-                _, params, body = fn
-                func_name = gensym("lambda")
-                declared_funcs.append((func_name, params, body))
-                fn_name = func_name
-
-            # fn is a variable or function name
-            elif isinstance(fn, str):
-                fn_name = fn
-            else:
-                raise ValueError(f"Unexpected function expression in application: {fn}")
-
-            args_str = ", ".join(str(a) for a in args)
-            expr = f"Main.{fn_name}({args_str})"
-
-            if target_var:
-                code_lines.append(f"let {target_var} = {expr};")
-                return local_vars, "\n".join(code_lines)
-            return local_vars, expr
-
-        raise ValueError(f"Unrecognized ANF form: {anf}")
-
-    def _expr_to_str(self, expr):
-        if isinstance(expr, (int, float)):
-            return str(expr)
-        elif isinstance(expr, str):
-            return expr
-        elif isinstance(expr, list) and expr[0] in ['+', '-', '*', '/', '=', '>', '<'] and len(expr) > 2:
-            op, e1, e2 = expr
-            return f"({self._expr_to_str(e1)} {op} {self._expr_to_str(e2)})"
-        elif isinstance(expr, list) and expr[0] in ['-', '~'] and len(expr) == 2:
-            unOp, e = expr
-            return f"({unOp} {self._expr_to_str(e)})"
-        raise ValueError(f"Cannot convert expression to string: {expr}")
-
-    def generate_class(self, anf):
-        declared_vars, declared_funcs = set(), []
-        _, body_code = self.anf_to_jack(anf, declared_vars, target_var="result", declared_funcs=declared_funcs)
-
-        var_decls = [f"var int {v};" for v in declared_vars]
-
-        # generate lifted function definitions
-        func_decls = []
-        for fname, params, body in declared_funcs:
-            body_vars, func_body = self.anf_to_jack(body, declared_vars=set(), target_var="retval")
-            local_decls = [f"var int {v};" for v in body_vars]
-            func_code = (
-                f"function int {fname}({', '.join('int ' + p for p in params)}) {{\n"
-                + "var int retval;\n"
-                + "\n".join(local_decls) + "\n"
-                + func_body + "\n"
-                "return retval;\n}"
-            )
-            func_decls.append(func_code)
-
-        class_code = (
-            "class Main {\n"
-            + "\n".join(func_decls) + "\n\n"
-            "function void main() {\n"
-            + "var int result;\n"
-            + "\n".join(var_decls) + "\n"
-            + body_code + "\n"
-            "do Output.printInt(result);\n"
-            "return;\n"
-            "}\n"
-            "}"
+    def generate_function(self, fn):
+        _, name, params, body = fn
+        env = Env()
+        for p in params:
+            env.define_var(p)
+        body_code = self.generate_block(body, env)
+        var_decls = "\n".join(f"var int {v};" for v in env.vars if v not in params)
+        return (
+            f"function int {name}({', '.join(f'int {p}' for p in params)}) {{\n"
+            f"{self.indent(var_decls)}\n{self.indent(body_code)}\n}}"
         )
 
-        return class_code
+    def generate_main(self, ast):
+        env = Env()
+        code = self.generate_expr(ast, env)
+        var_decls = "\n".join(f"var int {v};" for v in env.vars)
+        return f"function void main() {{\n{self.indent(var_decls)}\n{self.indent(code)}\n  return;\n}}"
+
+    def generate_jack(self, ast, lifted_funcs=None, class_name="Main"):
+        if lifted_funcs is None:
+            lifted_funcs = []
+
+        self.lifted = {fn[1]: fn[2:] for fn in lifted_funcs}
+
+        lifted_code = [self.generate_function(fn) for fn in lifted_funcs]
+        main_code = self.generate_main(ast)
+        class_body = "\n\n".join(lifted_code + [main_code])
+        return f"class {class_name} {{\n{self.indent(class_body)}\n}}"
