@@ -11,7 +11,6 @@ def main(prompt: str = "fjack.py> "):
 
         passes = [
             normalize_term,
-            flatten_nested_lambdas,
             remove_anonymous_lambda,
             optimize_direct_call,
             flatten_nested_lets

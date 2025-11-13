@@ -40,24 +40,6 @@ def remove_anonymous_lambda(ast, top=True):
     else:
         return [remove_anonymous_lambda(e, top=False) for e in ast]
 
-def flatten_nested_lambdas(expr):
-    """Recursively flatten nested lambdas inside other lambdas."""
-    if not isinstance(expr, list):
-        return expr
-
-    expr = [flatten_nested_lambdas(e) for e in expr]
-
-    if len(expr) == 3 and expr[0] == 'lambda':
-        args = expr[1]
-        body = expr[2]
-
-        if isinstance(body, list) and len(body) == 3 and body[0] == 'lambda':
-            inner_args = body[1]
-            inner_body = body[2]
-            return ['lambda', args + inner_args, inner_body]
-
-    return expr
-
 def lambda_lift(ast, lifted=None):
     """Convert lambdas into named top-level functions."""
     if lifted is None:
@@ -90,18 +72,15 @@ def flatten_nested_lets(expr):
 
         for var, val in bindings:
             val = flatten_nested_lets(val)
-            # If val is a let, pull its bindings into the outer let
             if isinstance(val, list) and len(val) == 3 and val[0] == 'let':
                 inner_bindings, inner_body = val[1], val[2]
                 new_bindings.extend(inner_bindings)
-                # Use inner body in place of the original binding variable
                 new_body = replace_var(new_body, var, inner_body)
             else:
                 new_bindings.append([var, val])
 
         return ['let', new_bindings, new_body]
 
-    # Otherwise recursively process sub-expressions
     return [flatten_nested_lets(e) for e in expr]
 
 def replace_var(expr, var, val):
