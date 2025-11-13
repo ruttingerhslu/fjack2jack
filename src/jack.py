@@ -1,5 +1,6 @@
 from collections import defaultdict
 import itertools
+import re
 
 from .env import Env
 
@@ -87,7 +88,8 @@ class JackGenerator:
     def generate_main(self, ast):
         env = Env()
         code = self.generate_expr(ast, env)
-        var_decls = "\n".join(f"var int {v};" for v in env.vars)
+        all_vars = re.findall(r'\blet\s+([a-zA-Z_]\w*)\s*=', code)
+        var_decls = "\n".join(f"var int {v};" for v in all_vars)
         return f"function void main() {{\n{self.indent(var_decls)}\n{self.indent(code)}\n  return;\n}}"
 
     def generate_jack(self, ast, lifted_funcs=None, class_name="Main"):
