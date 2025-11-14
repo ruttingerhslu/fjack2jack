@@ -29,17 +29,6 @@ def optimize_direct_call(ast):
     else:
         return [optimize_direct_call(e) for e in ast]
 
-def remove_anonymous_lambda(ast, top=True):
-    """Add let binding to any anonymous lambdas"""
-    if not isinstance(ast, list):
-        return ast
-    if len(ast) >= 3 and ast[0] == 'lambda' and top:
-        params, body = ast[1], remove_anonymous_lambda(ast[2], top=False)
-        t = gensym('f')
-        return ['let', [[t, ['lambda', params, body]]], t]
-    else:
-        return [remove_anonymous_lambda(e, top=False) for e in ast]
-
 def lambda_lift(ast, lifted=None):
     """Convert lambdas into named top-level functions."""
     if lifted is None:
