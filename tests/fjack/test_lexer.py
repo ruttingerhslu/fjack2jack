@@ -1,7 +1,7 @@
 import unittest
 
-from fjack.lexer import Lexer
-from fjack.token import Token, TokenType
+from src.fjack.lexer import Lexer
+from src.fjack.token import Token, TokenType
 
 class TestLexer(unittest.TestCase):
     def test_next_token(self):

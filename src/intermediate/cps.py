@@ -1,4 +1,4 @@
-from fjack.ast import *
+from src.fjack.ast import *
 from .cps_ast import *
 
 class TransformError(Exception):
@@ -23,6 +23,26 @@ class CPS:
 
     def __init__(self):
         self.rec_bound = []
+
+    def transform(self):
+        """
+            F: M x C -> M'
+            F([E, k]) = (k E)
+            F([(E, (λ_cont (x) M'))]) = (let ((x E)) M')
+            F([(E...), C]) = (let ((v (E ...))) (j v)) if C = x and x is bound by letrec
+                           = (E ... C)                 otherwise
+            F([(let ((x M_1)) M_2), C]) = F([M_1, (λ(x) F([M_2, C]))])
+            F([(if E M_1 M_2), k]) = (if E F([M_1, k]) F([M_2, k]))
+            F([(if E M_1 M_2), (λ_cont (x) M')]) =
+                (letrec ((x (λ_jump (x) M'))) (if E F([M_1, x]) F([M_2, x])))
+            F([(loop l ((x E_initial) ...)M), C]) =
+                (letrec ((l (λ_jump (x...) F([M, C])))) (l E_initial ...))
+            F([(l E ...), C]) = (l E ...)
+
+            V : P -> P'
+            V([(λ(x...) M)]) = (λ_proc (x...k) F([M, k]))
+        """
+        pass
 
     def transform_f(self, m: M, c: C) -> MCps:
         """F: M x C -> M'"""

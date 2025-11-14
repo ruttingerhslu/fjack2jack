@@ -1,7 +1,7 @@
 from .cps_ast import LetrecCps, MCps, LetCps, CallCps, JumpCps, X, K, Ccont, BindingCont, IfCps, PCps, Pproc, Pjump
 from .ssa_ast import *
 
-import fjack.ast as fjack
+import src.fjack.ast as fjack
 
 class TransformError(Exception):
     """Raised when a transform error occurs."""
@@ -47,7 +47,7 @@ class SSA:
             G([(if E M_1' M_2')]) = if E then G([M_1']) else G([M_2'])
             G([(letrec (...) M')]) = G([M'])
             G_proc : P' -> P
-            G_proc([(λ_proc (x ...) M')]) = proc(x ... k) { G([M']) }
+            G_proc([(λ_proc (x ...) M')]) = proc(x ... k) { G([M']) G_jump([(lamda_jump ...)]) ... }
             G_jump : j x (λ_jump (x ...) M') -> L
             G_jump([j, (λ_jump (x ...) M')]) = j : x <- ɸ(E_0,0, E_0,1); ... G([M'])
         """

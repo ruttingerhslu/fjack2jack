@@ -1,6 +1,6 @@
 import unittest
 
-from fjack.ast import *
+from src.fjack.ast import *
 
 class TestAst(unittest.TestCase):
     def test_program_to_string(self):

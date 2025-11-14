@@ -1,9 +1,13 @@
 import unittest
 
-from intermediate.cps import *
-from fjack.ast import *
+from src.intermediate.cps import *
+from src.fjack.ast import *
 
 class TestCps(unittest.TestCase):
+    """
+        (λ (x y) (+ x y)) to
+        (λ_proc (x y k) (k (+ x y)))
+    """
     def test_transform(self):
         input = Program(
             parameters=[Identifier("x"), Identifier("y")],

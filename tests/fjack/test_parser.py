@@ -1,9 +1,9 @@
 import unittest
 
-from fjack.lexer import Lexer
-from fjack.parser import Parser
+from src.fjack.lexer import Lexer
+from src.fjack.parser import Parser
 
-from fjack.ast import *
+from src.fjack.ast import *
 
 class TestParser(unittest.TestCase):
     def test_lambda(self):

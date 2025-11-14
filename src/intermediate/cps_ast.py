@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from fjack.ast import *
+from src.fjack.ast import *
 
 @dataclass
 class X(Identifier, E):
