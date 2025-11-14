@@ -34,16 +34,13 @@ class JackGenerator:
 
             elif op == "let":
                 bindings, body = ast[1], ast[2]
-                new_env = Env(env)
                 code_lines = []
                 for name, val in bindings:
                     rhs = self.generate_expr(val, env)
-                    if rhs in self.lifted:
-                        new_env.define_func(name, rhs)
-                    else:
+                    if rhs not in self.lifted:
                         code_lines.append(f"let {name} = {rhs};")
-                    new_env.define_var(name)
-                code_lines.append(self.generate_expr(body, new_env))
+                        env.define_var(name)
+                code_lines.append(self.generate_expr(body, env))
                 return "\n".join(code_lines)
 
             elif op in ["+", "-", "*", "/", ">", "<", "=", "and", "or"]:
@@ -55,10 +52,8 @@ class JackGenerator:
                 return f"do Output.printInt({self.generate_expr(ast[1], env)});"
 
             else:
-                fn_binding = env.lookup_func(op)
-                fn_name = fn_binding if fn_binding else op
                 args = ", ".join(self.generate_expr(a, env) for a in ast[1:])
-                return f"Main.{fn_name}({args})"
+                return f"Main.{op}({args})"
         else:
             return str(ast)
 
@@ -84,17 +79,13 @@ class JackGenerator:
     def generate_main(self, ast):
         env = Env()
         code = self.generate_expr(ast, env)
-        all_vars = re.findall(r'\blet\s+([a-zA-Z_]\w*)\s*=', code)
-        var_decls = "\n".join(f"var int {v};" for v in all_vars)
+        var_decls = "\n".join(f"var int {v};" for v in env.all_vars())
         return f"function void main() {{\n{self.indent(var_decls)}\n{self.indent(code)}\n  return;\n}}"
 
-    def generate_jack(self, ast, lifted_funcs=None, class_name="Main"):
-        if lifted_funcs is None:
-            lifted_funcs = []
-
+    def generate_jack(self, ast, lifted_funcs=[]):
         self.lifted = {fn[1]: fn[2:] for fn in lifted_funcs}
 
         lifted_code = [self.generate_function(fn) for fn in lifted_funcs]
         main_code = self.generate_main(ast)
         class_body = "\n\n".join(lifted_code + [main_code])
-        return f"class {class_name} {{\n{self.indent(class_body)}\n}}"
+        return f"class Main {{\n{self.indent(class_body)}\n}}"

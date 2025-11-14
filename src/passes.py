@@ -30,24 +30,45 @@ def optimize_direct_call(ast):
         return [optimize_direct_call(e) for e in ast]
 
 def lambda_lift(ast, lifted=None):
-    """Convert lambdas into named top-level functions."""
+    """Lift lambdas using their respective let bindings"""
     if lifted is None:
         lifted = []
 
-    if isinstance(ast, list) and len(ast) >= 3 and ast[0] == 'lambda':
-        params, body = ast[1], ast[2]
-        fname = gensym("fun")
-        lifted.append(['function', fname, params, body])
-        return fname, lifted
+    if not isinstance(ast, list):
+        return ast, lifted
 
-    if isinstance(ast, list):
-        new_ast = []
-        for e in ast:
-            lifted_expr, lifted = lambda_lift(e, lifted)
-            new_ast.append(lifted_expr)
-        return new_ast, lifted
+    if len(ast) == 3 and ast[0] == 'let' and isinstance(ast[1], list):
+        bindings = ast[1]
+        body = ast[2]
 
-    return ast, lifted
+        new_bindings = []
+
+        for (name, value) in bindings:
+            if (
+                isinstance(value, list)
+                and len(value) >= 3
+                and value[0] == 'lambda'
+            ):
+                params = value[1]
+                lbody = value[2]
+
+                lifted.append(['function', name, params, lbody])
+
+                new_bindings.append([name, name])
+            else:
+                new_value, lifted = lambda_lift(value, lifted)
+                new_bindings.append([name, new_value])
+
+        new_body, lifted = lambda_lift(body, lifted)
+
+        return ['let', new_bindings, new_body], lifted
+
+    new_list = []
+    for item in ast:
+        new_item, lifted = lambda_lift(item, lifted)
+        new_list.append(new_item)
+
+    return new_list, lifted
 
 def flatten_nested_lets(expr):
     """Flatten nested let expressions by removing unnecessary temporary bindings."""
