@@ -42,17 +42,15 @@ To make code generation simpler, we go through multiple passes of the CoreScheme
 
 ``normalize-term``: takes the current ast representation and translates it to A-normalization form.
 
-``remove_anonymous_lambda``: removes any unnamed lambda expressions -> inserts a let with a generated function name
-
 ``optimize_direct_call``: transforms (if possible) a lambda into a simpler let expression, this is much easier to translate, since there isnt a need for an entirely different function
 
 ``flatten_nested_lets``: this pass makes translation even easier, since we don't need to check for nested let expressions in our generate_jack function
 
-``lambda_lift``: this might be the most important pass, as it gives us functions along with scheme ast, these functions represent lambdas that have been lifted out of the abstract syntax tree and have been replaced with generated function names instead (pseudocode):
+``lambda_lift``: this might be the most important pass, as it gives us functions along with scheme ast, these functions represent lambdas that have been lifted out of the abstract syntax tree and have been replaced with the name of the lifted function (always the same as the bound variable; this might be a design flaw, but it makes code generation easier, since we only need to check if a variable is named after a lifted function to check for function bindings):
 ```
 (let (square (lambda (x) (*x x))) (print (square 5)))
 # translated to
-(let (square f0) (print (square 5))), {function f0: (x), (x * x)}
+(let (square square) (print (square 5))), {function square: (x), (x * x)}
 ```
 Later on, when we see the binding square f0, we know that f0 is a function, and so square is only here to guide further uses of the function to f0 instead
 
