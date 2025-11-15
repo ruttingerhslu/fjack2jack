@@ -41,7 +41,7 @@ To make code generation simpler, we go through multiple passes of the CoreScheme
 
 ``normalize-term``: takes the current ast representation and translates it to A-normalization form.
 
-``optimize_direct_call``: transforms (if possible) a lambda into a simpler let expression, this is much easier to translate, since there isnt a need for an entirely different function
+``beta_reduction``: transforms (if possible) a lambda into a simpler let expression, this is much easier to translate, since there isnt a need for an entirely different function. Also this pass is considered 'sound' in CPS (β-reduction)
 
 ``flatten_nested_lets``: this pass makes translation even easier, since we don't need to check for nested let expressions in our generate_jack function
 

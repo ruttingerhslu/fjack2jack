@@ -1,6 +1,5 @@
 from collections import defaultdict
 import itertools
-import re
 
 from .env import Env
 

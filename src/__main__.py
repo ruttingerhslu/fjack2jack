@@ -11,7 +11,7 @@ def main(prompt: str = "fjack.py> "):
 
         passes = [
             normalize_term,
-            optimize_direct_call,
+            beta_reduction,
             flatten_nested_lets
         ]
         ast, lifted = run_pipeline(ast, passes, True)

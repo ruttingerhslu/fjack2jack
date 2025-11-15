@@ -1,5 +1,5 @@
 class Env:
-    """Environment to track variables and lifted function bindings with proper scoping."""
+    """Environment to track variables."""
     def __init__(self, parent=None):
         self.parent = parent
         self.vars = set()

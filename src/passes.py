@@ -5,29 +5,24 @@ gensym_counter = itertools.count()
 def gensym(prefix="f"):
     return f"{prefix}{next(gensym_counter)}"
 
-def optimize_direct_call(ast):
-    """((lambda (x*) body) e* ...) => (let ([x* e*] ...) body)"""
-    if not isinstance(ast, list):
-        return ast
-
-    if len(ast) >= 1 and isinstance(ast[0], list):
-        first = ast[0]
-        if isinstance(first, list) and len(first) >= 3 and first[0] == 'lambda':
-            params, body = first[1], first[2]
+def beta_reduction(ast):
+    """Function inlining (β-reduction)"""
+    # ((lambda (params) body) arg...)
+    if isinstance(ast, list) and isinstance(ast[0], list):
+        head = ast[0]
+        if (len(head) == 3 and head[0] == 'lambda'):
+            params = head[1]
+            body = head[2]
             args = ast[1:]
-            if len(params) == len(args):
-                bindings = [[p, optimize_direct_call(a)] for p, a in zip(params, args)]
-                return ['let', bindings, optimize_direct_call(body)]
 
-    op = ast[0]
-    if op == 'let':
-        bindings, body = ast[1], ast[2]
-        new_bindings = [[x, optimize_direct_call(e)] for x, e in bindings]
-        return ['let', new_bindings, optimize_direct_call(body)]
-    elif op == 'if':
-        return ['if', optimize_direct_call(ast[1]), optimize_direct_call(ast[2]), optimize_direct_call(ast[3])]
-    else:
-        return [optimize_direct_call(e) for e in ast]
+            if len(params) == len(args):
+                # construct (let ([p a] ...) body)
+                bindings = [[p, beta_reduction(a)] for p, a in zip(params, args)]
+                return ['let', bindings, beta_reduction(body)]
+
+    if isinstance(ast, list):
+        return [beta_reduction(x) for x in ast]
+    return ast
 
 def lambda_lift(ast, lifted=None):
     """Lift lambdas using their respective let bindings"""
