@@ -16,6 +16,7 @@ pytest
 We first take the abstract syntax for Core Scheme
 
 ### Core Scheme
+```
 M ::= V
       | (let (x M_1) M_2)
       | (if M_1 M_2 M_3)
@@ -26,6 +27,7 @@ V ∈ Values
 c ∈ Constants
 x ∈ Variables
 O ∈ Primitive Operations
+```
 
 where in lambda x_i are distinct and bound to M
 also in let expr: x is bound to M_2,
