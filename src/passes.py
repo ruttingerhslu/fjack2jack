@@ -77,3 +77,21 @@ def replace_var(expr, var, val):
         return val
     else:
         return expr
+
+def beta_reduction(ast):
+    # ((lambda (params) body) arg...)
+    if isinstance(ast, list) and isinstance(ast[0], list):
+        head = ast[0]
+        if (len(head) == 3 and head[0] == 'lambda'):
+            params = head[1]
+            body = head[2]
+            args = ast[1:]
+
+            if len(params) == len(args):
+                # construct (let ([p a] ...) body)
+                bindings = [[p, beta_reduction(a)] for p, a in zip(params, args)]
+                return ['let', bindings, beta_reduction(body)]
+
+    if isinstance(ast, list):
+        return [beta_reduction(x) for x in ast]
+    return ast
