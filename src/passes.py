@@ -5,25 +5,6 @@ gensym_counter = itertools.count()
 def gensym(prefix="f"):
     return f"{prefix}{next(gensym_counter)}"
 
-def beta_reduction(ast):
-    """Function inlining (β-reduction)"""
-    # ((lambda (params) body) arg...)
-    if isinstance(ast, list) and isinstance(ast[0], list):
-        head = ast[0]
-        if (len(head) == 3 and head[0] == 'lambda'):
-            params = head[1]
-            body = head[2]
-            args = ast[1:]
-
-            if len(params) == len(args):
-                # construct (let ([p a] ...) body)
-                bindings = [[p, beta_reduction(a)] for p, a in zip(params, args)]
-                return ['let', bindings, beta_reduction(body)]
-
-    if isinstance(ast, list):
-        return [beta_reduction(x) for x in ast]
-    return ast
-
 def lambda_lift(ast, lifted=None):
     """Lift lambdas using their respective let bindings"""
     if lifted is None:
