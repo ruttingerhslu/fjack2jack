@@ -1,5 +1,5 @@
-# lispy2jack
-A source-to-source compiler from Lispy to Jack.
+# fjack2jack
+A source-to-source compiler from FJack to Jack.
 
 ## Setup
 Use the following command in the root directory to start the REPL:
