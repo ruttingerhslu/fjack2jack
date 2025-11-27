@@ -71,7 +71,9 @@ def flatten(expr):
     Input is assumed to already be in ANF form.
     Output: (bindings, value)
     """
-    if expr[0] == 'let':
+    if not isinstance(expr, list):
+        return [], expr
+    elif expr[0] == 'let':
         bindings, body = expr[1], expr[2]
         acc = []
         for var, val in bindings:
@@ -90,8 +92,6 @@ def flatten(expr):
             acc.extend(bnds_e)
             flat_subs.append(val_e)
         return acc, [expr[0]] + flat_subs
-    else:
-        return [], expr
 
 def flatten_program(expr):
     bindings, value = flatten(expr)
