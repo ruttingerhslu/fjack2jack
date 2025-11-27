@@ -46,38 +46,6 @@ def lambda_lift(ast, lifted=None):
 
     return new_list, lifted
 
-def flatten_nested_lets(expr):
-    """Flatten nested let expressions by removing unnecessary temporary bindings."""
-    if not isinstance(expr, list):
-        return expr
-
-    if len(expr) == 3 and expr[0] == 'let':
-        bindings, body = expr[1], expr[2]
-        new_bindings = []
-        new_body = flatten_nested_lets(body)
-
-        for var, val in bindings:
-            val = flatten_nested_lets(val)
-            if isinstance(val, list) and len(val) == 3 and val[0] == 'let':
-                inner_bindings, inner_body = val[1], val[2]
-                new_bindings.extend(inner_bindings)
-                new_body = replace_var(new_body, var, inner_body)
-            else:
-                new_bindings.append([var, val])
-
-        return ['let', new_bindings, new_body]
-
-    return [flatten_nested_lets(e) for e in expr]
-
-def replace_var(expr, var, val):
-    """Recursively replace occurrences of var in expr with val."""
-    if isinstance(expr, list):
-        return [replace_var(e, var, val) for e in expr]
-    elif expr == var:
-        return val
-    else:
-        return expr
-
 def beta_reduction(ast):
     # ((lambda (params) body) arg...)
     if isinstance(ast, list) and isinstance(ast[0], list):
@@ -95,3 +63,36 @@ def beta_reduction(ast):
     if isinstance(ast, list):
         return [beta_reduction(x) for x in ast]
     return ast
+
+
+def flatten(expr):
+    """
+    Flatten nested `let` expressions into a linear sequence of bindings.
+    Input is assumed to already be in ANF form.
+    Output: (bindings, value)
+    """
+    if expr[0] == 'let':
+        bindings, body = expr[1], expr[2]
+        acc = []
+        for var, val in bindings:
+            bnds_v, val_v = flatten(val)
+            acc.extend(bnds_v)
+            acc.append([var, val_v])
+        bnds_body, body_val = flatten(body)
+        acc.extend(bnds_body)
+        return acc, body_val
+    elif isinstance(expr, list):
+        subexprs = expr[1:]
+        acc = []
+        flat_subs = []
+        for e in subexprs:
+            bnds_e, val_e = flatten(e)
+            acc.extend(bnds_e)
+            flat_subs.append(val_e)
+        return acc, [expr[0]] + flat_subs
+    else:
+        return [], expr
+
+def flatten_program(expr):
+    bindings, value = flatten(expr)
+    return ['let', bindings, value]
