@@ -49,7 +49,7 @@ To make code generation simpler, we go through multiple passes of the CoreScheme
 
 ``lambda_lift``: this might be the most important pass, as it gives us functions along with scheme ast, these functions represent lambdas that have been lifted out of the abstract syntax tree and have been replaced with the name of the lifted function (always the same as the bound variable; this might be a design flaw, but it makes code generation easier, since we only need to check if a variable is named after a lifted function to check for function bindings):
 ```
-(let (square (lambda (x) (*x x))) (print (square 5)))
+(let (square (lambda (x) (* x x))) (print (square 5)))
 # translated to
 (let (square square) (print (square 5))), {function square: (x), (x * x)}
 ```

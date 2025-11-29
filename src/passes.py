@@ -1,9 +1,54 @@
-import itertools
+def beta_reduction(ast):
+    """
+    Apply parameters to lambdas to reduce them into lets instead
+    """
+    if isinstance(ast, list) and isinstance(ast[0], list):
+        head = ast[0]
+        if (len(head) == 3 and head[0] == 'lambda'):
+            params = head[1]
+            body = head[2]
+            args = ast[1:]
 
-gensym_counter = itertools.count()
+            if len(params) == len(args):
+                # construct (let ([p a] ...) body)
+                bindings = [[p, beta_reduction(a)] for p, a in zip(params, args)]
+                return ['let', bindings, beta_reduction(body)]
 
-def gensym(prefix="f"):
-    return f"{prefix}{next(gensym_counter)}"
+    if isinstance(ast, list):
+        return [beta_reduction(x) for x in ast]
+    return ast
+
+def flatten(expr):
+    """
+    Flatten nested `let` expressions into a linear sequence of bindings.
+    Input is assumed to already be in ANF form.
+    Output: (bindings, value)
+    """
+    if not isinstance(expr, list):
+        return [], expr
+    elif expr[0] == 'let':
+        bindings, body = expr[1], expr[2]
+        acc = []
+        for var, val in bindings:
+            bnds_v, val_v = flatten(val)
+            acc.extend(bnds_v)
+            acc.append([var, val_v])
+        bnds_body, body_val = flatten(body)
+        acc.extend(bnds_body)
+        return acc, body_val
+    elif isinstance(expr, list):
+        subexprs = expr[1:]
+        acc = []
+        flat_subs = []
+        for e in subexprs:
+            bnds_e, val_e = flatten(e)
+            acc.extend(bnds_e)
+            flat_subs.append(val_e)
+        return acc, [expr[0]] + flat_subs
+
+def flatten_program(expr):
+    bindings, value = flatten(expr)
+    return ['let', bindings, value]
 
 def lambda_lift(ast, lifted=None):
     """Lift lambdas using their respective let bindings"""
@@ -45,54 +90,3 @@ def lambda_lift(ast, lifted=None):
         new_list.append(new_item)
 
     return new_list, lifted
-
-def beta_reduction(ast):
-    # ((lambda (params) body) arg...)
-    if isinstance(ast, list) and isinstance(ast[0], list):
-        head = ast[0]
-        if (len(head) == 3 and head[0] == 'lambda'):
-            params = head[1]
-            body = head[2]
-            args = ast[1:]
-
-            if len(params) == len(args):
-                # construct (let ([p a] ...) body)
-                bindings = [[p, beta_reduction(a)] for p, a in zip(params, args)]
-                return ['let', bindings, beta_reduction(body)]
-
-    if isinstance(ast, list):
-        return [beta_reduction(x) for x in ast]
-    return ast
-
-
-def flatten(expr):
-    """
-    Flatten nested `let` expressions into a linear sequence of bindings.
-    Input is assumed to already be in ANF form.
-    Output: (bindings, value)
-    """
-    if not isinstance(expr, list):
-        return [], expr
-    elif expr[0] == 'let':
-        bindings, body = expr[1], expr[2]
-        acc = []
-        for var, val in bindings:
-            bnds_v, val_v = flatten(val)
-            acc.extend(bnds_v)
-            acc.append([var, val_v])
-        bnds_body, body_val = flatten(body)
-        acc.extend(bnds_body)
-        return acc, body_val
-    elif isinstance(expr, list):
-        subexprs = expr[1:]
-        acc = []
-        flat_subs = []
-        for e in subexprs:
-            bnds_e, val_e = flatten(e)
-            acc.extend(bnds_e)
-            flat_subs.append(val_e)
-        return acc, [expr[0]] + flat_subs
-
-def flatten_program(expr):
-    bindings, value = flatten(expr)
-    return ['let', bindings, value]
