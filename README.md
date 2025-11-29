@@ -37,14 +37,15 @@ Next, normalize using the algorithm described in "The essence of Compiling with 
 
 To make code generation simpler, we go through multiple passes of the CoreScheme ast:
 - normalize_term,
-- flatten_nested_lets
+- beta_reduction
+- flatten_program
 - lambda_lift
 
 ``normalize-term``: takes the current ast representation and translates it to A-normalization form.
 
 ``beta_reduction``: transforms (if possible) a lambda into a simpler let expression, this is much easier to translate, since there isnt a need for an entirely different function. Also this pass is considered 'sound' in CPS (β-reduction)
 
-``flatten_nested_lets``: this pass makes code generation easier, since we don't need to check for nested let expressions in our generate_jack function
+``flatten_program``: this pass makes code generation easier, since we don't need to check for nested let expressions in our generate_jack function
 
 ``lambda_lift``: this might be the most important pass, as it gives us functions along with scheme ast, these functions represent lambdas that have been lifted out of the abstract syntax tree and have been replaced with the name of the lifted function (always the same as the bound variable; this might be a design flaw, but it makes code generation easier, since we only need to check if a variable is named after a lifted function to check for function bindings):
 ```
