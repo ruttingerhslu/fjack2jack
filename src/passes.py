@@ -90,3 +90,29 @@ def lambda_lift(ast, lifted=None):
         new_list.append(new_item)
 
     return new_list, lifted
+
+def uncurry(ast):
+    if not isinstance(ast, list):
+        return ast
+
+    if ast and ast[0] == 'lambda':
+        params = list(ast[1])
+        body = ast[2]
+
+        while isinstance(body, list) and len(body) == 3 and body[0] == 'lambda':
+            params += body[1]
+            body = body[2]
+
+        return ['lambda', params, uncurry(body)]
+
+    if len(ast) >= 2:
+        f = uncurry(ast[0])
+        args = [uncurry(a) for a in ast[1:]]
+
+        if isinstance(f, list) and f and f[0] not in ('lambda', 'let'):
+            return f + args
+
+        if not isinstance(f, list):
+            return [f] + args
+
+    return [uncurry(x) for x in ast]
