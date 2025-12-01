@@ -1,5 +1,6 @@
 from .anf import normalize_term
-from .passes import *
+from .beta_reduction import beta_reduce
+from .lambda_lifting import lambda_lift
 from .jack import JackGenerator
 from .fjack import *
 
@@ -9,31 +10,19 @@ def main(prompt: str = "fjack.py> "):
         fjack_code = input(prompt)
         ast = parse(fjack_code)
 
-        passes = [
-            normalize_term,
-            beta_reduction,
-            flatten_program
-        ]
-        ast, lifted = run_pipeline(ast, passes, True)
+        ast = beta_reduce(ast)
+        print("Pass: beta_reduce")
+        print(ast)
+        ast = normalize_term(ast)
+        print("Pass: a-normalization")
+        print(ast)
+        ast, lifted = lambda_lift(ast)
+        print("Pass: lambda lifting")
+        print(ast)
 
         gen = JackGenerator()
         jack_code = gen.generate_jack(ast, lifted)
         print(jack_code)
-
-def run_pipeline(ast, passes, printFlag):
-    """Apply all passes in order."""
-    for p in passes:
-        ast = p(ast)
-        if printFlag:
-            print(f"Pass: {p.__name__}")
-            print(ast)
-
-    ast, lifted = lambda_lift(ast)
-    if printFlag:
-        print(f"Pass: lambda_lift")
-        print(ast)
-        print(lifted)
-    return ast, lifted
 
 if __name__ == "__main__":
     main()
