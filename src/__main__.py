@@ -13,9 +13,11 @@ def main(prompt: str = "fjack.py> "):
         ast = beta_reduce(ast)
         print("Pass: beta_reduce")
         print(ast)
+
         ast = normalize_term(ast)
         print("Pass: a-normalization")
         print(ast)
+
         ast, lifted = lambda_lift(ast)
         print("Pass: lambda lifting")
         print(ast)
