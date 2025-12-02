@@ -8,6 +8,8 @@ def gensym(prefix="t"):
 
 def normalize_term(m):
     """
+    𝐴-normalization algorithm according to:
+
     (define normalize-term (lambda (M) (normalize M (lambda (x) x))))
     """
     return normalize(m, lambda x: x)

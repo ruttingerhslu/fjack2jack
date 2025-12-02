@@ -1,8 +1,8 @@
+from .fjack import *
 from .anf import normalize_term
 from .beta_reduction import beta_reduce
 from .lambda_lifting import lambda_lift
 from .jack import JackGenerator
-from .fjack import *
 
 def main(prompt: str = "fjack.py> "):
     """A prompt read-eval-print loop."""

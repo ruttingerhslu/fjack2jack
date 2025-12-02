@@ -1,10 +1,3 @@
-"""
-    FJack - Rafael Uttinger
-    Minimal Scheme parser from Peter Norvig’s Lispy
-"""
-############ FJack: Scheme transpiler to Jack
-
-# AST nodes
 Symbol = str
 Number = int | float
 Atom = Symbol | Number
