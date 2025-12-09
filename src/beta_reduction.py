@@ -14,10 +14,10 @@ def substitute(ast, env):
         # get value of variable defined in env
         return copy.deepcopy(env.get(ast, ast))
 
-    if not isinstance(ast, list):
+    elif not isinstance(ast, list):
         return ast
 
-    if ast[0] == 'lambda':
+    elif ast[0] == 'lambda':
         params = ast[1]
         body = ast[2]
         # do not substitute inside bound variables
@@ -50,7 +50,7 @@ def beta_reduce(ast):
     """
     if isinstance(ast, list) and isinstance(ast[0], list) and (ast[0][0] == 'lambda'):
         x = ast[0][1]
-        body= ast[0][2]
+        body = ast[0][2]
         args = ast[1:]
 
         if len(x) == len(args):

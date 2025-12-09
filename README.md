@@ -21,12 +21,12 @@ M ::= V
       | (let (x M_1) M_2)
       | (if M_1 M_2 M_3)
       | (M M_1 ... M_n)
-      | (O M_1 ... M_n)
+      | (op M_1 ... M_n)
+      | (print M)
 V ::= c | x | (lambda (x_1 ... x_n) M)
-V ∈ Values
 c ∈ Constants
 x ∈ Variables
-O ∈ Primitive Operations
+op ∈ Primitive Operations
 ```
 
 where in lambda x_i are distinct and bound to M
@@ -92,6 +92,16 @@ named lambda (supported):
 (let (square (lambda (x) (* x x))) (if (> (square 3) 5) (print (square 10)) (print (square 2))))
 ```
 
+simple named lambda (chapter example):
+```
+(print (let (square (lambda (x) (* x x))) (square (+ 1 2))))
+```
+
+nested lets (not supported)
+```
+(let (x 10) (let (f (lambda (y) ((lambda (z) (+ x y z)) 5))) (f 2)))
+```
+
 nested lambda (closures are not supported):
 ```
 (let (add (lambda (x) (lambda (y) (+ x y)))) (print ((add 2) 3)))
@@ -100,4 +110,13 @@ nested lambda (closures are not supported):
 nested lambda (closures are not supported):
 ```
 (print ((lambda (x) (lambda (y) (lambda (z) (+ x (+ y z)))) 1) 2 3))
+```
+
+```
+(let (k0 (lambda (u) (k1 u))) (let (k1 (lambda (u) (k2 u))) (let (k2 (lambda (u) (k3 u))) (let (k3 (lambda (u) (print u))) (k0 1)))))
+```
+
+recursion (returns don't really work here):
+```
+(let (k0 (lambda (u) (if (< u 4) (k0 (+ u 1)) (print u)))) (k0 1))
 ```

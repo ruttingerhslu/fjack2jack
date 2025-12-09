@@ -21,6 +21,7 @@ def main(prompt: str = "fjack.py> "):
         ast, lifted = lambda_lift(ast)
         print("Pass: lambda lifting")
         print(ast)
+        print(lifted)
 
         gen = JackGenerator()
         jack_code = gen.generate_jack(ast, lifted)

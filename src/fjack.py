@@ -12,10 +12,7 @@ def atom(token: str) -> Exp:
     try:
         return int(token)
     except ValueError:
-        try:
-            return float(token)
-        except ValueError:
-            return Symbol(token)
+        return Symbol(token)
 
 def read_from_tokens(tokens: list[str]) -> Exp:
     """Read an expression from a sequence of tokens."""
