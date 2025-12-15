@@ -30,8 +30,6 @@ def alpha_rename(params, body):
     """
     α-renaming on lambda parameters to avoid variable capture.
     """
-    body = copy.deepcopy(body)
-
     new_params = []
     rename_env = {}
 
@@ -49,17 +47,17 @@ def beta_reduce(ast):
     full β-reduction for multi argument lambda with α-renaming to avoid variable capture
     """
     if isinstance(ast, list) and isinstance(ast[0], list) and (ast[0][0] == 'lambda'):
-        x = ast[0][1]
+        params = ast[0][1]
         body = ast[0][2]
         args = ast[1:]
 
-        if len(x) == len(args):
+        if len(params) == len(args):
             # capture-avoiding substitution:
             # step 1: α-rename parameters to fresh names
-            new_params, new_body = alpha_rename(x, body)
+            new_params, new_body = alpha_rename(params, body)
 
             # step 2: substitute arguments
-            env = {new_params[i]: args[i] for i in range(len(x))}
+            env = {new_params[i]: args[i] for i in range(len(params))}
             reduced = substitute(new_body, env)
 
             return beta_reduce(reduced)
