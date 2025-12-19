@@ -3,10 +3,10 @@ def lambda_lift(ast, lifted=None):
     if lifted is None:
         lifted = []
 
-    if not isinstance(ast, list):
+    elif not isinstance(ast, list):
         return ast, lifted
 
-    if len(ast) == 3 and ast[0] == 'let' and isinstance(ast[1], list):
+    elif len(ast) == 3 and ast[0] == 'let' and isinstance(ast[1], list):
         bindings = ast[1]
         body = ast[2]
 
