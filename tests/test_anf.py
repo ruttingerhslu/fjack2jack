@@ -12,3 +12,12 @@ class TestANF(unittest.TestCase):
         anf = normalize_term(input)
 
         self.assertEqual(anf, expected)
+
+    def test_named_lambda(self):
+        input = ["print", ["let", ["square", ["lambda", ["x"], ["*", "x", "x"]]], ["square", ["+", 1, 2]]]]
+
+        expected = ['let', [['square', ['lambda', ['x'], ['*', 'x', 'x']]]], ['let', [['t0', ['+', 1, 2]]], ['let', [['t1', ['square', 't0']]], ['print', 't1']]]]
+
+        ast = normalize_term(input)
+
+        self.assertEqual(ast, expected)
