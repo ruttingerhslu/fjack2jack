@@ -12,7 +12,7 @@ class TestJack(unittest.TestCase):
         gen = JackGenerator()
         jack_code = gen.generate_jack(input, lifted)
 
-        #prepare for comparison
+        # prepare for comparison
         ast = ' '.join(jack_code.replace("\n", "").split())
 
         self.assertEqual(ast, expected)

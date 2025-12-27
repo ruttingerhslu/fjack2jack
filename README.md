@@ -40,9 +40,9 @@ To make code generation simpler, we go through multiple passes of the CoreScheme
 - normalize_term,
 - lambda_lift
 
-``normalize-term``: takes the current ast representation and translates it to A-normalization form.
-
 ``beta_reduction``: transforms (if possible) a lambda into a simpler let expression, this is much easier to translate, since there isnt a need for an entirely different function. Also this pass is considered 'sound' in CPS (β-reduction)
+
+``normalize_term``: takes the current ast representation and translates it to A-normalization form.
 
 ``lambda_lift``: this might be the most important pass, as it gives us functions along with scheme ast, these functions represent lambdas that have been lifted out of the abstract syntax tree and have been replaced with the name of the lifted function (always the same as the bound variable; this might be a design flaw, but it makes code generation easier, since we only need to check if a variable is named after a lifted function to check for function bindings):
 ```
@@ -62,20 +62,20 @@ lambda with 2 args:
 (print ((lambda (x y) (+ x y)) 1 2))
 ```
 
-not allowed, x and y are unknown:
+<!--not allowed, x and y are unknown:
 ```
 ((lambda (x y) (+ x y)))
-```
+```-->
 
 if test:
 ```
 (let (x (+ 1 2)) (if (= x 3) (print 10) (print 20)))
 ```
 
-if test (not allowed, x is unknown):
+<!--if test (not allowed, x is unknown):
 ```
 (if (> x 0) (x) (- x))
-```
+```-->
 
 if lambda:
 ```
@@ -97,7 +97,7 @@ simple named lambda (chapter example):
 (print (let (square (lambda (x) (* x x))) (square (+ 1 2))))
 ```
 
-nested lets (not supported)
+<!--nested lets (not supported)
 ```
 (let (x 10) (let (f (lambda (y) ((lambda (z) (+ x y z)) 5))) (f 2)))
 ```
@@ -119,4 +119,4 @@ nested lambda (closures are not supported):
 recursion (returns don't really work here):
 ```
 (let (k0 (lambda (u) (if (< u 4) (k0 (+ u 1)) (print u)))) (k0 1))
-```
+```-->
