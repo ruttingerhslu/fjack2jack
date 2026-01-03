@@ -15,7 +15,7 @@ pytest
 ## Semantics
 We first take the abstract syntax for Core Scheme
 
-### Core Scheme
+### FJack
 ```
 M ::= V
       | (let (x M_1) M_2)
